@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.custmanage.server.mapper.OpportunityMapper">
+
+    <select id="selectOpportunities" resultType="com.custmanage.server.vo.OpportunityVO">
+        SELECT
+            o.id,
+            o.source_type,
+            o.opportunity_name,
+            o.opportunity_type,
+            o.opportunity_status,
+            s.service_name,
+            o.expected_amount,
+            o.expected_close_date,
+            o.description,
+            o.created_time
+        FROM biz_opportunity o
+        LEFT JOIN biz_service s ON s.id = o.service_id
+        WHERE o.group_id = #{groupId}
+        <if test="status != null and status != ''">
+            AND o.opportunity_status = #{status}
+        </if>
+        <if test="type != null and type != ''">
+            AND o.opportunity_type = #{type}
+        </if>
+        <if test="sourceType != null and sourceType != ''">
+            AND o.source_type = #{sourceType}
+        </if>
+        ORDER BY o.created_time DESC
+    </select>
+</mapper>

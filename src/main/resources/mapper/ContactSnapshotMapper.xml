@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.custmanage.server.mapper.ContactSnapshotMapper">
+
+    <resultMap id="SnapshotMap" type="com.custmanage.server.mapper.ContactSnapshotMapper$ContactSnapshotEntity">
+        <id property="id" column="id"/>
+        <result property="ticketId" column="ticket_id"/>
+        <result property="contactId" column="contact_id"/>
+        <result property="groupId" column="group_id"/>
+        <result property="changeType" column="change_type"/>
+        <result property="beforeContactName" column="before_contact_name"/>
+        <result property="afterContactName" column="after_contact_name"/>
+        <result property="beforeContactPhone" column="before_contact_phone"/>
+        <result property="afterContactPhone" column="after_contact_phone"/>
+        <result property="beforeDepartmentName" column="before_department_name"/>
+        <result property="afterDepartmentName" column="after_department_name"/>
+        <result property="beforePositionName" column="before_position_name"/>
+        <result property="afterPositionName" column="after_position_name"/>
+    </resultMap>
+
+    <insert id="insert">
+        INSERT INTO wf_ticket_contact_snapshot
+            (id, ticket_id, contact_id, group_id, change_type,
+             before_contact_name, after_contact_name,
+             before_contact_phone, after_contact_phone,
+             before_department_name, after_department_name,
+             before_position_name, after_position_name,
+             created_by, created_time)
+        VALUES
+            (#{id}, #{ticketId}, #{contactId}, #{groupId}, #{changeType},
+             #{beforeContactName}, #{afterContactName},
+             #{beforeContactPhone}, #{afterContactPhone},
+             #{beforeDepartmentName}, #{afterDepartmentName},
+             #{beforePositionName}, #{afterPositionName},
+             NULL, NOW())
+    </insert>
+
+    <select id="selectByTicketId" resultMap="SnapshotMap">
+        SELECT * FROM wf_ticket_contact_snapshot
+        WHERE ticket_id = #{ticketId}
+    </select>
+</mapper>

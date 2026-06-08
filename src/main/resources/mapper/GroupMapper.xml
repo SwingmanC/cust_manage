@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.custmanage.server.mapper.GroupMapper">
+
+    <sql id="GroupFilter">
+        g.deleted_flag = 0
+        <if test="query.groupName != null and query.groupName != ''">
+            AND g.group_name LIKE CONCAT('%', #{query.groupName}, '%')
+        </if>
+        <if test="query.groupCode != null and query.groupCode != ''">
+            AND g.group_code = #{query.groupCode}
+        </if>
+        <if test="query.groupTypeCode != null and query.groupTypeCode != ''">
+            AND g.group_type_code = #{query.groupTypeCode}
+        </if>
+        <if test="query.important != null">
+            AND g.is_important = #{query.important}
+        </if>
+        <if test="query.keyCustomer != null">
+            AND g.is_key_customer = #{query.keyCustomer}
+        </if>
+        <if test="query.is139 != null">
+            AND g.is_139 = #{query.is139}
+        </if>
+        <if test="query.locationType != null and query.locationType != ''">
+            AND g.location_type = #{query.locationType}
+        </if>
+        <if test="query.buOrgId != null">
+            AND g.bu_org_id = #{query.buOrgId}
+        </if>
+        <if test="query.managerUserId != null">
+            AND g.manager_user_id = #{query.managerUserId}
+        </if>
+        <!-- 数据权限过滤 -->
+        <if test="query.dataScope != null">
+            <if test="query.dataScope.scopeType == '本人'">
+                AND g.manager_user_id = #{query.dataScope.currentUserId}
+            </if>
+            <if test="query.dataScope.scopeType == '本网格'">
+                AND g.bu_org_id = #{query.dataScope.userOrgId}
+            </if>
+            <if test="query.dataScope.scopeType == '本部门' and query.dataScope.deptOrgIds != null and query.dataScope.deptOrgIds.size() > 0">
+                AND g.bu_org_id IN
+                <foreach collection="query.dataScope.deptOrgIds" item="orgId" open="(" separator="," close=")">
+                    #{orgId}
+                </foreach>
+            </if>
+            <!-- 全部：不追加过滤条件 -->
+        </if>
+    </sql>
+
+    <select id="countGroups" resultType="long">
+        SELECT COUNT(1)
+        FROM crm_group g
+        WHERE <include refid="GroupFilter"/>
+    </select>
+
+    <select id="selectGroups" resultType="com.custmanage.server.vo.GroupListVO">
+        SELECT
+            g.id AS group_id,
+            g.group_code,
+            g.group_name,
+            g.group_category,
+            g.group_type_code,
+            org.org_name AS bu_name,
+            manager.user_name AS manager_name,
+            CASE WHEN g.is_important = 1 THEN TRUE ELSE FALSE END AS important,
+            CASE WHEN g.is_key_customer = 1 THEN TRUE ELSE FALSE END AS key_customer,
+            CASE WHEN g.is_139 = 1 THEN TRUE ELSE FALSE END AS is139,
+            g.location_type,
+            g.contact_book_status,
+            COALESCE(rev.last_month_revenue, 0) AS last_month_revenue
+        FROM crm_group g
+        LEFT JOIN sys_org org ON org.id = g.bu_org_id
+        LEFT JOIN sys_user manager ON manager.id = g.manager_user_id
+        LEFT JOIN (
+            SELECT group_id, revenue_month, SUM(revenue_amount) AS last_month_revenue
+            FROM biz_group_revenue_monthly
+            WHERE revenue_month = (
+                SELECT MAX(revenue_month)
+                FROM biz_group_revenue_monthly
+            )
+            GROUP BY group_id, revenue_month
+        ) rev ON rev.group_id = g.id
+        WHERE <include refid="GroupFilter"/>
+        ORDER BY g.updated_time DESC, g.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="selectGroupIdsByManager" resultType="long">
+        SELECT id FROM crm_group
+        WHERE manager_user_id = #{managerUserId}
+          AND status = '有效'
+          AND deleted_flag = 0
+    </select>
+
+    <select id="selectGroupIdsByOrgId" resultType="long">
+        SELECT id FROM crm_group
+        WHERE bu_org_id = #{orgId}
+          AND status = '有效'
+          AND deleted_flag = 0
+    </select>
+
+    <select id="selectGroupDetail" resultType="com.custmanage.server.vo.GroupDetailVO">
+        SELECT
+            g.id AS group_id,
+            g.group_code,
+            g.group_name,
+            g.group_category,
+            g.group_type_code,
+            org.org_name AS bu_name,
+            manager.user_name AS manager_name,
+            CASE WHEN g.is_important = 1 THEN TRUE ELSE FALSE END AS important,
+            CASE WHEN g.is_key_customer = 1 THEN TRUE ELSE FALSE END AS key_customer,
+            CASE WHEN g.is_139 = 1 THEN TRUE ELSE FALSE END AS is139,
+            g.location_type,
+            g.main_contact_name,
+            g.main_contact_phone,
+            g.contact_book_status,
+            g.social_security_count,
+            g.status
+        FROM crm_group g
+        LEFT JOIN sys_org org ON org.id = g.bu_org_id
+        LEFT JOIN sys_user manager ON manager.id = g.manager_user_id
+        WHERE g.id = #{groupId}
+          AND g.deleted_flag = 0
+    </select>
+</mapper>

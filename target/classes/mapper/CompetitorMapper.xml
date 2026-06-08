@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.custmanage.server.mapper.CompetitorMapper">
+
+    <resultMap id="CompetitorVOMap" type="com.custmanage.server.vo.CompetitorVO">
+        <id property="id" column="id"/>
+        <result property="groupId" column="group_id"/>
+        <result property="groupName" column="group_name"/>
+        <result property="serviceId" column="service_id"/>
+        <result property="serviceName" column="service_name"/>
+        <result property="competitorName" column="competitor_name"/>
+        <result property="statMonth" column="stat_month"/>
+        <result property="quantity" column="quantity"/>
+        <result property="remark" column="remark"/>
+        <result property="status" column="status"/>
+        <result property="updatedTime" column="updated_time"/>
+        <result property="submitTime" column="submit_time"/>
+    </resultMap>
+
+    <select id="selectList" resultMap="CompetitorVOMap">
+        SELECT c.id, c.group_id, g.group_name, c.service_id, s.service_name,
+               c.competitor_name, c.stat_month, c.quantity, c.remark,
+               c.status AS status, c.updated_time
+        FROM biz_group_competitor c
+        LEFT JOIN crm_group g ON c.group_id = g.id
+        LEFT JOIN biz_service s ON c.service_id = s.id
+        WHERE c.deleted_flag = 0
+        <if test="groupIds != null and groupIds.size() > 0">
+            AND c.group_id IN
+            <foreach collection="groupIds" item="gid" open="(" separator="," close=")">#{gid}</foreach>
+        </if>
+        <if test="status != null and status != ''">
+            AND c.status = #{status}
+        </if>
+        <if test="statusList != null and statusList.size() > 0">
+            AND c.status IN
+            <foreach collection="statusList" item="s" open="(" separator="," close=")">#{s}</foreach>
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (c.competitor_name LIKE CONCAT('%', #{keyword}, '%')
+                 OR s.service_name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY c.updated_time DESC
+    </select>
+
+    <select id="selectById" resultMap="CompetitorVOMap">
+        SELECT c.*, g.group_name, s.service_name
+        FROM biz_group_competitor c
+        LEFT JOIN crm_group g ON c.group_id = g.id
+        LEFT JOIN biz_service s ON c.service_id = s.id
+        WHERE c.id = #{id} AND c.deleted_flag = 0
+    </select>
+
+    <select id="countList" resultType="long">
+        SELECT COUNT(1) FROM biz_group_competitor c WHERE c.deleted_flag = 0
+        <if test="groupIds != null and groupIds.size() > 0">
+            AND c.group_id IN
+            <foreach collection="groupIds" item="gid" open="(" separator="," close=")">#{gid}</foreach>
+        </if>
+        <if test="status != null and status != ''">
+            AND c.status = #{status}
+        </if>
+        <if test="statusList != null and statusList.size() > 0">
+            AND c.status IN
+            <foreach collection="statusList" item="s" open="(" separator="," close=")">#{s}</foreach>
+        </if>
+    </select>
+
+    <insert id="insert">
+        INSERT INTO biz_group_competitor
+            (id, group_id, service_id, competitor_name, stat_month, quantity, remark,
+             status, created_by, created_time, updated_by, updated_time, deleted_flag)
+        VALUES (#{id}, #{groupId}, #{serviceId}, #{competitorName}, #{statMonth}, #{quantity}, #{remark},
+                #{status}, #{createdBy}, NOW(), #{updatedBy}, NOW(), 0)
+    </insert>
+
+    <update id="update">
+        UPDATE biz_group_competitor
+        SET service_id = #{serviceId}, competitor_name = #{competitorName},
+            stat_month = #{statMonth}, quantity = #{quantity}, remark = #{remark},
+            status = #{status}, updated_by = #{updatedBy}, updated_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE biz_group_competitor SET status = #{status}, updated_time = NOW() WHERE id = #{id}
+    </update>
+
+    <update id="deleteLogic">
+        UPDATE biz_group_competitor SET deleted_flag = 1, updated_time = NOW() WHERE id = #{id}
+    </update>
+
+    <select id="selectHistory" resultType="map">
+        SELECT s.change_type             AS changeType,
+               s.before_competitor_name  AS beforeCompetitorName,
+               s.after_competitor_name   AS afterCompetitorName,
+               s.before_quantity         AS beforeQuantity,
+               s.after_quantity          AS afterQuantity,
+               s.before_stat_month       AS beforeStatMonth,
+               s.after_stat_month        AS afterStatMonth,
+               t.submit_time             AS changeTime
+        FROM wf_ticket_competitor_snapshot s
+        JOIN wf_ticket t ON s.ticket_id = t.id
+        WHERE s.competitor_record_id = #{competitorId}
+        ORDER BY t.submit_time DESC
+    </select>
+</mapper>

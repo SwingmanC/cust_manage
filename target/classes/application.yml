@@ -1,0 +1,35 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: cust-manage-server
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+  datasource:
+    url: jdbc:mysql://localhost:3306/cust_manage?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
+    username: root
+    password: sc990912
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+mybatis:
+  mapper-locations: classpath*:mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+# JWT 配置（不配置 secret 则每次重启随机生成，历史 Token 全部失效）
+jwt:
+  secret: ${JWT_SECRET:}
+  expiration: 86400000
+
+# OA/统一认证（预留）
+auth:
+  oa:
+    enabled: false
+    client-id:
+    auth-url:
+
+logging:
+  level:
+    com.custmanage.server.query.mapper: debug

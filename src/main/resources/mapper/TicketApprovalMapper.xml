@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.custmanage.server.mapper.TicketApprovalMapper">
+
+    <resultMap id="ApprovalMap" type="com.custmanage.server.mapper.TicketApprovalMapper$TicketApprovalEntity">
+        <id property="id" column="id"/>
+        <result property="ticketId" column="ticket_id"/>
+        <result property="nodeName" column="node_name"/>
+        <result property="approverId" column="approver_id"/>
+        <result property="action" column="action"/>
+        <result property="fromStatus" column="from_status"/>
+        <result property="toStatus" column="to_status"/>
+        <result property="approvalComment" column="approval_comment"/>
+        <result property="approvalTime" column="approval_time"/>
+    </resultMap>
+
+    <insert id="insert">
+        INSERT INTO wf_ticket_approval_record
+            (id, ticket_id, node_name, approver_id, action, from_status, to_status,
+             approval_comment, approval_time)
+        VALUES
+            (#{id}, #{ticketId}, #{nodeName}, #{approverId}, #{action}, #{fromStatus},
+             #{toStatus}, #{approvalComment}, NOW())
+    </insert>
+
+    <select id="selectByTicketId" resultMap="ApprovalMap">
+        SELECT * FROM wf_ticket_approval_record
+        WHERE ticket_id = #{ticketId}
+        ORDER BY approval_time ASC
+    </select>
+</mapper>
