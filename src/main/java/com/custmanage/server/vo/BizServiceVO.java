@@ -1,0 +1,14 @@
+package com.custmanage.server.vo;
+
+public class BizServiceVO {
+    private Long serviceId;
+    private String serviceCode;
+    private String serviceName;
+
+    public Long getServiceId() { return serviceId; }
+    public void setServiceId(Long serviceId) { this.serviceId = serviceId; }
+    public String getServiceCode() { return serviceCode; }
+    public void setServiceCode(String serviceCode) { this.serviceCode = serviceCode; }
+    public String getServiceName() { return serviceName; }
+    public void setServiceName(String serviceName) { this.serviceName = serviceName; }
+}
