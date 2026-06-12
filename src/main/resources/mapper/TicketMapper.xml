@@ -16,14 +16,14 @@
     </resultMap>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO wf_ticket (id, ticket_no, business_id, group_id, ticket_type, ticket_status,
+        INSERT INTO t_yqyc_wf_ticket (id, ticket_no, business_id, group_id, ticket_type, ticket_status,
                                submitter_id, current_handler_id, submit_time, created_time, updated_time)
         VALUES (#{id}, #{ticketNo}, #{businessId}, #{groupId}, #{ticketType}, #{ticketStatus},
                 #{submitterId}, #{currentHandlerId}, NOW(), NOW(), NOW())
     </insert>
 
     <update id="updateStatus">
-        UPDATE wf_ticket
+        UPDATE t_yqyc_wf_ticket
         SET ticket_status = #{status},
             current_handler_id = #{handlerId},
             finish_time = IF(#{status} IN ('通过','驳回'), NOW(), finish_time),
@@ -32,11 +32,11 @@
     </update>
 
     <select id="selectById" resultMap="TicketEntityMap">
-        SELECT * FROM wf_ticket WHERE id = #{ticketId}
+        SELECT * FROM t_yqyc_wf_ticket WHERE id = #{ticketId}
     </select>
 
     <select id="selectByBusinessId" resultMap="TicketEntityMap">
-        SELECT * FROM wf_ticket
+        SELECT * FROM t_yqyc_wf_ticket
         WHERE business_id = #{businessId}
         <if test="ticketType != null and ticketType != ''">
             AND ticket_type = #{ticketType}
@@ -45,7 +45,7 @@
     </select>
 
     <select id="selectPendingTickets" resultMap="TicketEntityMap">
-        SELECT * FROM wf_ticket
+        SELECT * FROM t_yqyc_wf_ticket
         WHERE ticket_type = #{ticketType}
           AND group_id IN
         <foreach collection="groupIds" item="gid" open="(" separator="," close=")">

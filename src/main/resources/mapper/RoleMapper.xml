@@ -4,8 +4,8 @@
 
     <select id="selectRoleCodesByUserId" resultType="string">
         SELECT r.role_code
-        FROM sys_role r
-                 JOIN sys_user_role ur ON r.id = ur.role_id
+        FROM t_yqyc_sys_role r
+                 JOIN t_yqyc_sys_user_role ur ON r.id = ur.role_id
         WHERE ur.user_id = #{userId}
           AND r.status = '启用'
           AND r.deleted_flag = 0
@@ -13,7 +13,7 @@
 
     <select id="selectRoleIdsByCodes" resultType="long">
         SELECT r.id
-        FROM sys_role r
+        FROM t_yqyc_sys_role r
         WHERE r.role_code IN
         <foreach collection="roleCodes" item="code" open="(" separator="," close=")">
             #{code}

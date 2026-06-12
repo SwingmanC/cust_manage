@@ -53,7 +53,7 @@
 
     <select id="countGroups" resultType="long">
         SELECT COUNT(1)
-        FROM crm_group g
+        FROM t_yqyc_crm_group g
         WHERE <include refid="GroupFilter"/>
     </select>
 
@@ -72,15 +72,15 @@
             g.location_type,
             g.contact_book_status,
             COALESCE(rev.last_month_revenue, 0) AS last_month_revenue
-        FROM crm_group g
-        LEFT JOIN sys_org org ON org.id = g.bu_org_id
-        LEFT JOIN sys_user manager ON manager.id = g.manager_user_id
+        FROM t_yqyc_crm_group g
+        LEFT JOIN t_yqyc_sys_org org ON org.id = g.bu_org_id
+        LEFT JOIN t_yqyc_sys_user manager ON manager.id = g.manager_user_id
         LEFT JOIN (
             SELECT group_id, revenue_month, SUM(revenue_amount) AS last_month_revenue
-            FROM biz_group_revenue_monthly
+            FROM t_yqyc_biz_group_revenue_monthly
             WHERE revenue_month = (
                 SELECT MAX(revenue_month)
-                FROM biz_group_revenue_monthly
+                FROM t_yqyc_biz_group_revenue_monthly
             )
             GROUP BY group_id, revenue_month
         ) rev ON rev.group_id = g.id
@@ -90,14 +90,14 @@
     </select>
 
     <select id="selectGroupIdsByManager" resultType="long">
-        SELECT id FROM crm_group
+        SELECT id FROM t_yqyc_crm_group
         WHERE manager_user_id = #{managerUserId}
           AND status = '有效'
           AND deleted_flag = 0
     </select>
 
     <select id="selectGroupIdsByOrgId" resultType="long">
-        SELECT id FROM crm_group
+        SELECT id FROM t_yqyc_crm_group
         WHERE bu_org_id = #{orgId}
           AND status = '有效'
           AND deleted_flag = 0
@@ -121,9 +121,9 @@
             g.contact_book_status,
             g.social_security_count,
             g.status
-        FROM crm_group g
-        LEFT JOIN sys_org org ON org.id = g.bu_org_id
-        LEFT JOIN sys_user manager ON manager.id = g.manager_user_id
+        FROM t_yqyc_crm_group g
+        LEFT JOIN t_yqyc_sys_org org ON org.id = g.bu_org_id
+        LEFT JOIN t_yqyc_sys_user manager ON manager.id = g.manager_user_id
         WHERE g.id = #{groupId}
           AND g.deleted_flag = 0
     </select>

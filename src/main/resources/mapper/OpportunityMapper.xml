@@ -16,8 +16,8 @@
             o.expected_close_date,
             o.description,
             o.created_time
-        FROM biz_opportunity o
-        LEFT JOIN biz_service s ON s.id = o.service_id
+        FROM t_yqyc_biz_opportunity o
+        LEFT JOIN t_yqyc_biz_service s ON s.id = o.service_id
         WHERE o.group_id = #{groupId}
         <if test="status != null and status != ''">
             AND o.opportunity_status = #{status}

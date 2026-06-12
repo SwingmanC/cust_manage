@@ -22,8 +22,8 @@
             c.position_name, c.department_name,
             c.status, c.source_type, c.updated_time,
             c.group_id, g.group_name
-        FROM crm_group_contact c
-        LEFT JOIN crm_group g ON c.group_id = g.id
+        FROM t_yqyc_crm_group_contact c
+        LEFT JOIN t_yqyc_crm_group g ON c.group_id = g.id
         WHERE c.deleted_flag = 0
         <if test="groupIds != null and groupIds.size() > 0">
             AND c.group_id IN
@@ -45,13 +45,13 @@
 
     <select id="selectById" resultMap="ContactVOMap">
         SELECT c.*, g.group_name
-        FROM crm_group_contact c
-        LEFT JOIN crm_group g ON c.group_id = g.id
+        FROM t_yqyc_crm_group_contact c
+        LEFT JOIN t_yqyc_crm_group g ON c.group_id = g.id
         WHERE c.id = #{id} AND c.deleted_flag = 0
     </select>
 
     <select id="countContacts" resultType="long">
-        SELECT COUNT(1) FROM crm_group_contact c
+        SELECT COUNT(1) FROM t_yqyc_crm_group_contact c
         WHERE c.deleted_flag = 0
         <if test="groupIds != null and groupIds.size() > 0">
             AND c.group_id IN
@@ -67,7 +67,7 @@
     </select>
 
     <insert id="insert">
-        INSERT INTO crm_group_contact
+        INSERT INTO t_yqyc_crm_group_contact
             (id, group_id, contact_name, contact_phone, position_name, department_name,
              status, source_type, created_by, created_time, updated_by, updated_time, deleted_flag)
         VALUES
@@ -76,7 +76,7 @@
     </insert>
 
     <update id="update">
-        UPDATE crm_group_contact
+        UPDATE t_yqyc_crm_group_contact
         SET contact_name = #{contactName},
             contact_phone = #{contactPhone},
             position_name = #{positionName},
@@ -88,13 +88,13 @@
     </update>
 
     <update id="updateStatus">
-        UPDATE crm_group_contact
+        UPDATE t_yqyc_crm_group_contact
         SET status = #{status}, updated_time = NOW()
         WHERE id = #{id}
     </update>
 
     <update id="deleteLogic">
-        UPDATE crm_group_contact SET deleted_flag = 1, updated_time = NOW() WHERE id = #{id}
+        UPDATE t_yqyc_crm_group_contact SET deleted_flag = 1, updated_time = NOW() WHERE id = #{id}
     </update>
 
     <!-- 历史变更：从工单快照回溯，展示每次修改的前后对比 -->
@@ -109,8 +109,8 @@
                s.before_position_name  AS beforePositionName,
                s.after_position_name   AS afterPositionName,
                t.submit_time          AS changeTime
-        FROM wf_ticket_contact_snapshot s
-        JOIN wf_ticket t ON s.ticket_id = t.id
+        FROM t_yqyc_wf_ticket_contact_snapshot s
+        JOIN t_yqyc_wf_ticket t ON s.ticket_id = t.id
         WHERE s.contact_id = #{contactId}
         ORDER BY t.submit_time DESC
     </select>

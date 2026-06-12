@@ -1,13 +1,13 @@
 package com.custmanage.server.mapper;
 
+import com.custmanage.server.vo.BizServiceVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
-import java.util.Map;
 
 @Mapper
 public interface BizServiceMapper {
 
-    List<Map<String, Object>> selectAll(@Param("status") String status);
+    List<BizServiceVO> selectAll(@Param("status") String status);
 }

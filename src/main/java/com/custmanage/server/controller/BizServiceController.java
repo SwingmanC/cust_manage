@@ -2,12 +2,12 @@ package com.custmanage.server.controller;
 
 import com.custmanage.server.common.ApiResponse;
 import com.custmanage.server.mapper.BizServiceMapper;
+import com.custmanage.server.vo.BizServiceVO;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/services")
@@ -20,7 +20,7 @@ public class BizServiceController {
     }
 
     @GetMapping
-    public ApiResponse<List<Map<String, Object>>> list() {
+    public ApiResponse<List<BizServiceVO>> list() {
         return ApiResponse.ok(bizServiceMapper.selectAll("启用"));
     }
 }

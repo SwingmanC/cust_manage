@@ -15,7 +15,7 @@
     </resultMap>
 
     <insert id="insert">
-        INSERT INTO wf_ticket_approval_record
+        INSERT INTO t_yqyc_wf_ticket_approval_record
             (id, ticket_id, node_name, approver_id, action, from_status, to_status,
              approval_comment, approval_time)
         VALUES
@@ -24,7 +24,7 @@
     </insert>
 
     <select id="selectByTicketId" resultMap="ApprovalMap">
-        SELECT * FROM wf_ticket_approval_record
+        SELECT * FROM t_yqyc_wf_ticket_approval_record
         WHERE ticket_id = #{ticketId}
         ORDER BY approval_time ASC
     </select>

@@ -12,7 +12,7 @@
 
     <select id="selectByRoleIds" resultMap="DataScopeEntityMap">
         SELECT id, role_id, scope_type, scope_org_id, scope_group_id
-        FROM sys_data_scope
+        FROM t_yqyc_sys_data_scope
         WHERE role_id IN
         <foreach collection="roleIds" item="roleId" open="(" separator="," close=")">
             #{roleId}

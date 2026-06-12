@@ -1,4 +1,4 @@
-CREATE TABLE sys_org (
+CREATE TABLE t_yqyc_sys_org (
   id BIGINT PRIMARY KEY,
   org_code VARCHAR(50) NOT NULL,
   org_name VARCHAR(100) NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE sys_org (
   updated_time TIMESTAMP
 );
 
-CREATE TABLE sys_user (
+CREATE TABLE t_yqyc_sys_user (
   id BIGINT PRIMARY KEY,
   user_name VARCHAR(50) NOT NULL,
   mobile VARCHAR(30),
@@ -27,7 +27,7 @@ CREATE TABLE sys_user (
   updated_time TIMESTAMP
 );
 
-CREATE TABLE crm_group (
+CREATE TABLE t_yqyc_crm_group (
   id BIGINT PRIMARY KEY,
   group_code VARCHAR(32) NOT NULL,
   group_name VARCHAR(200) NOT NULL,
@@ -51,7 +51,7 @@ CREATE TABLE crm_group (
   deleted_flag TINYINT DEFAULT 0
 );
 
-CREATE TABLE biz_service (
+CREATE TABLE t_yqyc_biz_service (
   id BIGINT PRIMARY KEY,
   service_code VARCHAR(50) NOT NULL,
   service_name VARCHAR(100) NOT NULL,
@@ -62,7 +62,7 @@ CREATE TABLE biz_service (
   updated_time TIMESTAMP
 );
 
-CREATE TABLE biz_group_revenue_monthly (
+CREATE TABLE t_yqyc_biz_group_revenue_monthly (
   id BIGINT PRIMARY KEY,
   group_id BIGINT NOT NULL,
   service_id BIGINT NOT NULL,
@@ -75,7 +75,7 @@ CREATE TABLE biz_group_revenue_monthly (
   updated_time TIMESTAMP
 );
 
-CREATE TABLE biz_group_bc (
+CREATE TABLE t_yqyc_biz_group_bc (
   id BIGINT PRIMARY KEY,
   group_id BIGINT NOT NULL,
   service_id BIGINT NOT NULL,
@@ -86,7 +86,7 @@ CREATE TABLE biz_group_bc (
   updated_time TIMESTAMP
 );
 
-CREATE TABLE biz_group_competitor (
+CREATE TABLE t_yqyc_biz_group_competitor (
   id BIGINT PRIMARY KEY,
   group_id BIGINT NOT NULL,
   service_id BIGINT NOT NULL,
@@ -100,7 +100,7 @@ CREATE TABLE biz_group_competitor (
   updated_time TIMESTAMP
 );
 
-CREATE TABLE crm_group_contact (
+CREATE TABLE t_yqyc_crm_group_contact (
   id BIGINT PRIMARY KEY,
   group_id BIGINT NOT NULL,
   contact_name VARCHAR(50) NOT NULL,
@@ -116,7 +116,7 @@ CREATE TABLE crm_group_contact (
   deleted_flag TINYINT DEFAULT 0
 );
 
-CREATE TABLE biz_opportunity (
+CREATE TABLE t_yqyc_biz_opportunity (
   id BIGINT PRIMARY KEY,
   group_id BIGINT NOT NULL,
   source_type VARCHAR(32),
