@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.custmanage.server.mapper.DashboardMapper">
+
+    <!-- 集团总数 -->
+    <select id="countTotalGroups" resultType="long">
+        SELECT COUNT(1) FROM t_yqyc_crm_group WHERE status = '有效' AND deleted_flag = 0
+    </select>
+
+    <!-- 当月收入 -->
+    <select id="sumMonthRevenue" resultType="map">
+        SELECT COALESCE(SUM(revenue_amount), 0) AS total
+        FROM t_yqyc_biz_group_revenue_monthly
+        WHERE revenue_month = #{month}
+    </select>
+
+    <!-- 全年累计收入 -->
+    <select id="sumAnnualRevenue" resultType="map">
+        SELECT COALESCE(SUM(revenue_amount), 0) AS total
+        FROM t_yqyc_biz_group_revenue_monthly
+        WHERE revenue_month LIKE CONCAT(#{year}, '%')
+    </select>
+
+    <!-- 分BU收入 -->
+    <select id="revenueByBu" resultType="map">
+        SELECT g.bu_org_id AS buOrgId, o.org_name AS buName,
+               COALESCE(SUM(r.revenue_amount), 0) AS amount
+        FROM t_yqyc_biz_group_revenue_monthly r
+        JOIN t_yqyc_crm_group g ON r.group_id = g.id
+        JOIN t_yqyc_sys_org o ON g.bu_org_id = o.id
+        WHERE r.revenue_month = #{month} AND g.deleted_flag = 0
+        GROUP BY g.bu_org_id, o.org_name
+        ORDER BY amount DESC
+    </select>
+
+    <!-- 分业务收入 -->
+    <select id="revenueByService" resultType="map">
+        SELECT r.service_id AS serviceId, s.service_name AS serviceName,
+               COALESCE(SUM(r.revenue_amount), 0) AS amount
+        FROM t_yqyc_biz_group_revenue_monthly r
+        JOIN t_yqyc_biz_service s ON r.service_id = s.id
+        WHERE r.revenue_month = #{month}
+        GROUP BY r.service_id, s.service_name
+        ORDER BY amount DESC
+    </select>
+
+    <!-- 全年收入按月趋势 -->
+    <select id="revenueTrendByMonth" resultType="map">
+        SELECT revenue_month AS month, COALESCE(SUM(revenue_amount), 0) AS amount
+        FROM t_yqyc_biz_group_revenue_monthly
+        WHERE revenue_month LIKE CONCAT(#{year}, '%')
+        GROUP BY revenue_month
+        ORDER BY revenue_month
+    </select>
+
+    <!-- BU业绩：按业务汇总 -->
+    <select id="buPerfByService" resultType="map">
+        SELECT service_id AS serviceId, COALESCE(SUM(amount), 0) AS amount
+        FROM t_yqyc_biz_bu_performance
+        WHERE stat_month = #{month}
+        GROUP BY service_id
+    </select>
+
+    <!-- BU业绩：按BU+业务汇总 -->
+    <select id="buPerfByBuService" resultType="map">
+        SELECT p.bu_org_id AS buOrgId, o.org_name AS buName,
+               p.service_id AS serviceId, COALESCE(SUM(p.amount), 0) AS amount
+        FROM t_yqyc_biz_bu_performance p
+        JOIN t_yqyc_sys_org o ON p.bu_org_id = o.id
+        WHERE p.stat_month = #{month}
+        GROUP BY p.bu_org_id, o.org_name, p.service_id
+    </select>
+
+    <!-- BU按月收入 -->
+    <select id="buMonthlyRevenue" resultType="map">
+        SELECT r.revenue_month AS month, COALESCE(SUM(r.revenue_amount), 0) AS amount
+        FROM t_yqyc_biz_group_revenue_monthly r
+        JOIN t_yqyc_crm_group g ON r.group_id = g.id
+        WHERE g.bu_org_id = #{buOrgId} AND r.revenue_month LIKE CONCAT(#{year}, '%')
+        GROUP BY r.revenue_month ORDER BY r.revenue_month
+    </select>
+
+    <!-- BU按月业绩 -->
+    <select id="buMonthlyPerf" resultType="map">
+        SELECT stat_month AS month, COALESCE(SUM(amount), 0) AS amount
+        FROM t_yqyc_biz_bu_performance
+        WHERE bu_org_id = #{buOrgId} AND service_id = #{serviceId}
+          AND stat_month LIKE CONCAT(#{year}, '%')
+        GROUP BY stat_month ORDER BY stat_month
+    </select>
+
+    <!-- BU列表 -->
+    <select id="selectBuOptions" resultType="map">
+        SELECT id AS buOrgId, org_name AS buName
+        FROM t_yqyc_sys_org WHERE org_type = '网格' AND status = '启用'
+        ORDER BY sort_no, id
+    </select>
+
+    <!-- 要客集团数 -->
+    <select id="countKeyCustomerGroups" resultType="long">
+        SELECT COUNT(1) FROM t_yqyc_crm_group
+        WHERE is_key_customer = 1 AND status = '有效' AND deleted_flag = 0
+    </select>
+
+    <!-- 统付集团数 -->
+    <select id="countUnifiedPaymentGroups" resultType="long">
+        SELECT COUNT(DISTINCT parent_group_id) FROM t_yqyc_crm_group_relation
+        WHERE relation_type = '统付'
+    </select>
+
+</mapper>
