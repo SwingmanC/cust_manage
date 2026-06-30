@@ -3,8 +3,8 @@
 <mapper namespace="com.custmanage.server.mapper.LoginLogMapper">
 
     <insert id="insert">
-        INSERT INTO t_yqyc_sys_login_log (user_id, login_account, login_time, login_ip, login_result, fail_reason)
-        VALUES (#{userId}, #{loginAccount}, NOW(), #{loginIp}, #{loginResult}, #{failReason})
+        INSERT INTO szzw.t_yqyc_sys_login_log (user_id, login_account, login_time, login_ip, login_result, fail_reason)
+        VALUES (#{userId}, #{loginAccount}, SYSDATE, #{loginIp}, #{loginResult}, #{failReason})
     </insert>
 
 </mapper>

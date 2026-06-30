@@ -4,7 +4,7 @@ import com.custmanage.server.auth.DataScopeContext;
 
 public class GroupQueryRequest {
     private String groupName;
-    private String groupCode;
+    private Long groupCode;
     private String groupTypeCode;
     private Boolean important;
     private Boolean keyCustomer;
@@ -25,11 +25,11 @@ public class GroupQueryRequest {
         this.groupName = groupName;
     }
 
-    public String getGroupCode() {
+    public Long getGroupCode() {
         return groupCode;
     }
 
-    public void setGroupCode(String groupCode) {
+    public void setGroupCode(Long groupCode) {
         this.groupCode = groupCode;
     }
 

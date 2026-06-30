@@ -1,4 +1,5 @@
 package com.custmanage.server.config;
+import java.util.Arrays;
 
 import com.custmanage.server.auth.AuthInterceptor;
 import com.custmanage.server.auth.PermissionInterceptor;
@@ -27,9 +28,18 @@ public class WebMvcConfig implements WebMvcConfigurer {
     }
 
     @Override
+    public void addCorsMappings(org.springframework.web.servlet.config.annotation.CorsRegistry registry) {
+        registry.addMapping("/api/**")
+                .allowedOriginPatterns("*")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true);
+    }
+
+    @Override
     public void addInterceptors(InterceptorRegistry registry) {
         // 认证拦截器
-        registry.addInterceptor(new AuthInterceptor(authService, List.of(
+        registry.addInterceptor(new AuthInterceptor(authService, Arrays.asList(
                 "/api/auth/login",
                 "/api/auth/oauth",
                 "/api/health"

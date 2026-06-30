@@ -1,4 +1,5 @@
 package com.custmanage.server.service.impl;
+import com.custmanage.server.common.MapUtil;
 
 import com.custmanage.server.auth.DataScopeContext;
 import com.custmanage.server.auth.context.RequestContext;
@@ -43,13 +44,19 @@ public class CompetitorServiceImpl implements ICompetitorService {
     @Override
     public PageResponse<CompetitorVO> queryList(Long groupId, String tab, String keyword,
                                                  int pageNum, int pageSize) {
-        List<Long> groupIds = resolveGroupIds();
-        if (groupId != null) groupIds.retainAll(List.of(groupId));
+        List<Long> groupIds;
+        if(groupId == null){
+            groupIds = resolveGroupIds();
+        }
+        else{
+            groupIds = new ArrayList<>();
+            groupIds.add(groupId);
+        }
 
         List<String> statusList = null;
         String status = null;
         if ("pending".equals(tab)) {
-            statusList = List.of("待审核", "驳回");
+            statusList = Arrays.asList("待审核", "驳回");
         } else {
             status = "有效";
         }
@@ -58,7 +65,7 @@ public class CompetitorServiceImpl implements ICompetitorService {
         List<CompetitorVO> all = competitorMapper.selectList(groupIds, status, statusList, keyword);
         int from = (pageNum - 1) * pageSize;
         int to = Math.min(from + pageSize, all.size());
-        List<CompetitorVO> page = from < all.size() ? all.subList(from, to) : List.of();
+        List<CompetitorVO> page = from < all.size() ? all.subList(from, to) : Arrays.asList();
         return new PageResponse<>(total, page);
     }
 
@@ -91,6 +98,8 @@ public class CompetitorServiceImpl implements ICompetitorService {
             submitTicket(ticketId, userId);
             result.put("ticketId", ticketId);
         } else {
+            // BU/网格长：直接生效，仅记录历史变更快照（无审核工单，ticket_id 为空）
+            createSnapshot(null, id, toLong(params.get("groupId")), "新增", null, params);
             result.put("ticketId", -1);
         }
         return result;
@@ -108,8 +117,10 @@ public class CompetitorServiceImpl implements ICompetitorService {
             params.put("status", "有效");
             params.put("updatedBy", userId);
             competitorMapper.update(params);
+            // 记录历史变更（无审核工单，ticket_id 为空）
+            createSnapshot(null, id, old.getGroupId(), "修改", old, params);
             autoCloseRejectedTicket(id, userId);
-            return Map.of("id", id, "status", "有效", "ticketId", -1);
+            return MapUtil.of("id", id, "status", "有效", "ticketId", -1);
         }
 
         params.put("id", id);
@@ -129,7 +140,7 @@ public class CompetitorServiceImpl implements ICompetitorService {
             createSnapshot(ticketId, id, old.getGroupId(), "修改", old, params);
             submitTicket(ticketId, userId);
         }
-        return Map.of("id", id, "status", "待审核", "ticketId", ticketId);
+        return MapUtil.of("id", id, "status", "待审核", "ticketId", ticketId);
     }
 
     @Override
@@ -141,8 +152,10 @@ public class CompetitorServiceImpl implements ICompetitorService {
         Long userId = RequestContext.currentUserId();
         if (isBuLeader()) {
             competitorMapper.deleteLogic(id);
+            // 记录历史变更（无审核工单，ticket_id 为空）
+            createSnapshot(null, id, old.getGroupId(), "删除", old, null);
             autoCloseRejectedTicket(id, userId);
-            return Map.of("id", id, "status", "已删除", "ticketId", -1);
+            return MapUtil.of("id", id, "status", "已删除", "ticketId", -1);
         }
 
         TicketMapper.TicketEntity existing = ticketMapper.selectByBusinessId(id, null);
@@ -157,7 +170,7 @@ public class CompetitorServiceImpl implements ICompetitorService {
             createSnapshot(ticketId, id, old.getGroupId(), "删除", old, null);
             submitTicket(ticketId, userId);
         }
-        return Map.of("id", id, "status", "待审核", "ticketId", ticketId);
+        return MapUtil.of("id", id, "status", "待审核", "ticketId", ticketId);
     }
 
     @Override
@@ -167,10 +180,10 @@ public class CompetitorServiceImpl implements ICompetitorService {
 
     @Override
     public Map<String, Object> getTicketDetail(Long ticketId) {
-        var ticket = ticketMapper.selectById(ticketId);
+        TicketMapper.TicketEntity ticket = ticketMapper.selectById(ticketId);
         if (ticket == null) throw new BusinessException(404, "工单不存在");
-        var snapshots = snapshotMapper.selectByTicketId(ticketId);
-        var records = approvalMapper.selectByTicketId(ticketId);
+        List<CompetitorSnapshotMapper.CompetitorSnapshotEntity> snapshots = snapshotMapper.selectByTicketId(ticketId);
+        List<TicketApprovalMapper.TicketApprovalEntity> records = approvalMapper.selectByTicketId(ticketId);
         Map<String, Object> result = new HashMap<>();
         result.put("ticket", ticket);
         result.put("snapshots", snapshots);
@@ -180,7 +193,7 @@ public class CompetitorServiceImpl implements ICompetitorService {
 
     @Override
     public Map<String, Object> getTicketByCompetitorId(Long competitorId) {
-        var ticket = ticketMapper.selectByBusinessId(competitorId, null);
+        TicketMapper.TicketEntity ticket = ticketMapper.selectByBusinessId(competitorId, null);
         if (ticket == null) throw new BusinessException(404, "未找到关联工单");
         return getTicketDetail(ticket.getId());
     }
@@ -188,7 +201,7 @@ public class CompetitorServiceImpl implements ICompetitorService {
     @Override
     @Transactional
     public void approveTicket(Long ticketId, String comment) {
-        var ticket = ticketMapper.selectById(ticketId);
+        TicketMapper.TicketEntity ticket = ticketMapper.selectById(ticketId);
         if (ticket == null || !"待审核".equals(ticket.getTicketStatus()))
             throw new BusinessException(40001, "工单状态已变更，无法审核");
 
@@ -204,7 +217,7 @@ public class CompetitorServiceImpl implements ICompetitorService {
     @Override
     @Transactional
     public void rejectTicket(Long ticketId, String reason) {
-        var ticket = ticketMapper.selectById(ticketId);
+        TicketMapper.TicketEntity ticket = ticketMapper.selectById(ticketId);
         if (ticket == null || !"待审核".equals(ticket.getTicketStatus()))
             throw new BusinessException(40001, "工单状态已变更，无法审核");
 
@@ -217,7 +230,7 @@ public class CompetitorServiceImpl implements ICompetitorService {
 
     private Long createTicket(Long groupId, Long bizId, String type, Long submitter) {
         long id = nextId();
-        var t = new TicketMapper.TicketEntity();
+        TicketMapper.TicketEntity t = new TicketMapper.TicketEntity();
         t.setId(id); t.setTicketNo("WF" + System.currentTimeMillis());
         t.setBusinessId(bizId); t.setGroupId(groupId);
         t.setTicketType(type); t.setTicketStatus("草稿"); t.setSubmitterId(submitter);
@@ -236,21 +249,23 @@ public class CompetitorServiceImpl implements ICompetitorService {
 
     private void createSnapshot(Long ticketId, Long recordId, Long groupId,
                                  String changeType, Object oldObj, Object newObj) {
-        var s = new CompetitorSnapshotMapper.CompetitorSnapshotEntity();
+        CompetitorSnapshotMapper.CompetitorSnapshotEntity s = new CompetitorSnapshotMapper.CompetitorSnapshotEntity();
         s.setId(nextId()); s.setTicketId(ticketId);
         s.setCompetitorRecordId(recordId); s.setGroupId(groupId);
         s.setChangeType(changeType);
 
-        if (oldObj instanceof CompetitorVO o) {
+        if (oldObj instanceof CompetitorVO) {
+            CompetitorVO o = (CompetitorVO) oldObj;
             s.setBeforeServiceId(o.getServiceId()); s.setBeforeCompetitorName(o.getCompetitorName());
             s.setBeforeQuantity(o.getQuantity()); s.setBeforeStatMonth(o.getStatMonth());
             s.setBeforeRemark(o.getRemark());
         }
-        if (newObj instanceof Map<?,?> m) {
+        if (newObj instanceof Map) {
+            Map m = (Map) newObj;
             s.setAfterServiceId(toLong(m.get("serviceId")));
             s.setAfterCompetitorName((String) m.get("competitorName"));
             Object qty = m.get("quantity");
-            s.setAfterQuantity(qty instanceof BigDecimal bd ? bd : qty != null ? new BigDecimal(qty.toString()) : null);
+            s.setAfterQuantity(qty instanceof BigDecimal ? ((BigDecimal) qty) : qty != null ? new BigDecimal(qty.toString()) : null);
             s.setAfterStatMonth((String) m.get("statMonth"));
             s.setAfterRemark((String) m.get("remark"));
         }
@@ -259,7 +274,7 @@ public class CompetitorServiceImpl implements ICompetitorService {
 
     private void addApprovalRecord(Long ticketId, String node, String action,
                                     String from, String to, String comment) {
-        var r = new TicketApprovalMapper.TicketApprovalEntity();
+        TicketApprovalMapper.TicketApprovalEntity r = new TicketApprovalMapper.TicketApprovalEntity();
         r.setId(nextId()); r.setTicketId(ticketId); r.setNodeName(node);
         r.setApproverId(RequestContext.currentUserId()); r.setAction(action);
         r.setFromStatus(from); r.setToStatus(to); r.setApprovalComment(comment);
@@ -270,28 +285,28 @@ public class CompetitorServiceImpl implements ICompetitorService {
         Long userId = RequestContext.currentUserId();
         Long orgId = RequestContext.currentOrgId();
         DataScopeContext scope = dataScopeService.resolveDataScope(userId, orgId, RequestContext.currentRoles());
-        return switch (scope.getScopeType()) {
-            case "全部" -> null;
-            case "本部门" -> scope.getDeptOrgIds();
-            case "本网格" -> groupMapper.selectGroupIdsByOrgId(orgId);
-            default -> {
+        switch (scope.getScopeType()) {
+            case "全部": return null;
+            case "本部门": return scope.getDeptOrgIds();
+            case "本网格": return groupMapper.selectGroupIdsByOrgId(orgId);
+            default: {
                 List<Long> ids = groupMapper.selectGroupIdsByManager(userId);
-                yield ids != null && !ids.isEmpty() ? ids : List.of(-1L);
+                return ids != null && !ids.isEmpty() ? ids : Arrays.asList(-1L);
             }
-        };
+        }
     }
 
     private boolean isBuLeader() {
-        var roles = RequestContext.currentRoles();
-        return roles.contains("ROLE_GRID") || roles.contains("ROLE_DEPT")
-                || roles.contains("ROLE_COMPANY") || roles.contains("ROLE_ADMIN");
+        List<String> roles = RequestContext.currentRoles();
+        return roles.contains("BU_LEADER") || roles.contains("DEPT_LEADER")
+                || roles.contains("COMPANY_LEADER") || roles.contains("SYSTEM_ADMIN");
     }
 
     private static Long toLong(Object v) {
         if (v == null) return null;
-        if (v instanceof Long l) return l;
-        if (v instanceof Integer i) return i.longValue();
-        if (v instanceof String s) return Long.valueOf(s);
+        if (v instanceof Long) return (Long) v;
+        if (v instanceof Integer) return ((Integer) v).longValue();
+        if (v instanceof String) return Long.valueOf((String) v);
         return ((Number) v).longValue();
     }
 

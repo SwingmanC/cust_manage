@@ -73,7 +73,7 @@ public class CompetitorController {
     @PostMapping("/ticket/{id}/reject")
     public ApiResponse<Void> reject(@PathVariable Long id, @RequestBody Map<String, String> body) {
         String reason = body.getOrDefault("reason", "");
-        if (reason.isBlank()) reason = "驳回";
+        if (reason.trim().isEmpty()) reason = "驳回";
         competitorService.rejectTicket(id, reason);
         return ApiResponse.ok(null);
     }

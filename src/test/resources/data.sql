@@ -9,8 +9,8 @@ INSERT INTO t_yqyc_crm_group (
   is_important, is_key_customer, is_139, location_type, main_contact_name, main_contact_phone,
   contact_book_status, social_security_count, status, created_time, updated_time, deleted_flag
 ) VALUES
-(1000, 'GRP001', '苏州某某集团股份有限公司', 'LOCAL_PARENT', 'NAMED_GROUP', 10, 100, 1, 1, 1, 'LOCAL', '王主任', '13812345678', 'COMPLETE', 256, 'ENABLED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0),
-(1001, 'GRP002', '苏州样例科技有限公司', 'LOCAL_SINGLE', 'NORMAL_GROUP', 10, 100, 0, 0, 0, 'LOCAL', '李经理', '13900001111', 'MISSING', 88, 'ENABLED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0);
+(1000, 51210000185, '苏州某某集团股份有限公司', 'LOCAL_PARENT', 'NAMED_GROUP', 10, 100, 1, 1, 1, 'LOCAL', '王主任', '13812345678', 'COMPLETE', 256, 'ENABLED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0),
+(1001, 51235494454, '苏州样例科技有限公司', 'LOCAL_SINGLE', 'NORMAL_GROUP', 10, 100, 0, 0, 0, 'LOCAL', '李经理', '13900001111', 'MISSING', 88, 'ENABLED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0);
 
 INSERT INTO t_yqyc_biz_service (id, service_code, service_name, service_category, status, sort_no, created_time, updated_time)
 VALUES
@@ -20,21 +20,21 @@ VALUES
 
 INSERT INTO t_yqyc_biz_group_revenue_monthly (id, group_id, service_id, revenue_month, revenue_amount, source_system, sync_batch_no, sync_time, created_time, updated_time)
 VALUES
-(3000, 1000, 200, '2026-01', 12000.50, 'REV_SYS', 'BATCH001', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(3001, 1000, 201, '2026-01', 8000.00, 'REV_SYS', 'BATCH001', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(3002, 1000, 200, '2026-02', 15000.00, 'REV_SYS', 'BATCH002', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+(3000, 51210000185, 200, '202601', 12000.50, 'REV_SYS', 'BATCH001', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(3001, 51210000185, 201, '202601', 8000.00, 'REV_SYS', 'BATCH001', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(3002, 51210000185, 200, '202602', 15000.00, 'REV_SYS', 'BATCH002', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 INSERT INTO t_yqyc_biz_group_bc (id, group_id, service_id, stat_month, quantity, source_system, created_time, updated_time)
 VALUES
-(4000, 1000, 200, '2026-01', 8, 'BC_SYS', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(4001, 1000, 201, '2026-01', 12, 'BC_SYS', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(4002, 1000, 202, '2026-02', 234, 'BC_SYS', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+(4000, 51210000185, 200, '202601', 8, 'BC_SYS', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(4001, 51210000185, 201, '202601', 12, 'BC_SYS', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(4002, 51210000185, 202, '202602', 234, 'BC_SYS', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 INSERT INTO t_yqyc_biz_group_competitor (id, group_id, service_id, competitor_name, stat_month, quantity, remark, created_by, created_time, updated_by, updated_time)
 VALUES
-(5000, 1000, 201, '电信', '2026-01', 3, '集团有存量专线', 100, CURRENT_TIMESTAMP, 100, CURRENT_TIMESTAMP),
-(5001, 1000, 200, '联通', '2026-01', 1, '移动云试点', 100, CURRENT_TIMESTAMP, 100, CURRENT_TIMESTAMP),
-(5002, 1000, 201, '电信', '2026-02', 4, '专线增加', 100, CURRENT_TIMESTAMP, 100, CURRENT_TIMESTAMP);
+(5000, 1000, 201, '电信', '202601', 3, '集团有存量专线', 100, CURRENT_TIMESTAMP, 100, CURRENT_TIMESTAMP),
+(5001, 1000, 200, '联通', '202601', 1, '移动云试点', 100, CURRENT_TIMESTAMP, 100, CURRENT_TIMESTAMP),
+(5002, 1000, 201, '电信', '202602', 4, '专线增加', 100, CURRENT_TIMESTAMP, 100, CURRENT_TIMESTAMP);
 
 INSERT INTO t_yqyc_crm_group_contact (id, group_id, contact_name, contact_phone, position_name, department_name, status, source_type, created_by, created_time, updated_by, updated_time, deleted_flag)
 VALUES

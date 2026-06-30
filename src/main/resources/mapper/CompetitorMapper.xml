@@ -21,9 +21,9 @@
         SELECT c.id, c.group_id, g.group_name, c.service_id, s.service_name,
                c.competitor_name, c.stat_month, c.quantity, c.remark,
                c.status AS status, c.updated_time
-        FROM t_yqyc_biz_group_competitor c
-        LEFT JOIN t_yqyc_crm_group g ON c.group_id = g.id
-        LEFT JOIN t_yqyc_biz_service s ON c.service_id = s.id
+        FROM szzw.t_yqyc_biz_group_competitor c
+        LEFT JOIN szzw.t_yqyc_crm_group g ON c.group_id = g.id
+        LEFT JOIN szzw.t_yqyc_biz_service s ON c.service_id = s.id
         WHERE c.deleted_flag = 0
         <if test="groupIds != null and groupIds.size() > 0">
             AND c.group_id IN
@@ -37,22 +37,22 @@
             <foreach collection="statusList" item="s" open="(" separator="," close=")">#{s}</foreach>
         </if>
         <if test="keyword != null and keyword != ''">
-            AND (c.competitor_name LIKE CONCAT('%', #{keyword}, '%')
-                 OR s.service_name LIKE CONCAT('%', #{keyword}, '%'))
+            AND (c.competitor_name LIKE '%' || #{keyword} || '%'
+                 OR s.service_name LIKE '%' || #{keyword} || '%')
         </if>
         ORDER BY c.updated_time DESC
     </select>
 
     <select id="selectById" resultMap="CompetitorVOMap">
         SELECT c.*, g.group_name, s.service_name
-        FROM t_yqyc_biz_group_competitor c
-        LEFT JOIN t_yqyc_crm_group g ON c.group_id = g.id
-        LEFT JOIN t_yqyc_biz_service s ON c.service_id = s.id
+        FROM szzw.t_yqyc_biz_group_competitor c
+        LEFT JOIN szzw.t_yqyc_crm_group g ON c.group_id = g.id
+        LEFT JOIN szzw.t_yqyc_biz_service s ON c.service_id = s.id
         WHERE c.id = #{id} AND c.deleted_flag = 0
     </select>
 
     <select id="countList" resultType="long">
-        SELECT COUNT(1) FROM t_yqyc_biz_group_competitor c WHERE c.deleted_flag = 0
+        SELECT COUNT(1) FROM szzw.t_yqyc_biz_group_competitor c WHERE c.deleted_flag = 0
         <if test="groupIds != null and groupIds.size() > 0">
             AND c.group_id IN
             <foreach collection="groupIds" item="gid" open="(" separator="," close=")">#{gid}</foreach>
@@ -67,41 +67,40 @@
     </select>
 
     <insert id="insert">
-        INSERT INTO t_yqyc_biz_group_competitor
+        INSERT INTO szzw.t_yqyc_biz_group_competitor
             (id, group_id, service_id, competitor_name, stat_month, quantity, remark,
              status, created_by, created_time, updated_by, updated_time, deleted_flag)
         VALUES (#{id}, #{groupId}, #{serviceId}, #{competitorName}, #{statMonth}, #{quantity}, #{remark},
-                #{status}, #{createdBy}, NOW(), #{updatedBy}, NOW(), 0)
+                #{status}, #{createdBy}, SYSDATE, #{updatedBy}, SYSDATE, 0)
     </insert>
 
     <update id="update">
-        UPDATE t_yqyc_biz_group_competitor
+        UPDATE szzw.t_yqyc_biz_group_competitor
         SET service_id = #{serviceId}, competitor_name = #{competitorName},
             stat_month = #{statMonth}, quantity = #{quantity}, remark = #{remark},
-            status = #{status}, updated_by = #{updatedBy}, updated_time = NOW()
+            status = #{status}, updated_by = #{updatedBy}, updated_time = SYSDATE
         WHERE id = #{id}
     </update>
 
     <update id="updateStatus">
-        UPDATE t_yqyc_biz_group_competitor SET status = #{status}, updated_time = NOW() WHERE id = #{id}
+        UPDATE szzw.t_yqyc_biz_group_competitor SET status = #{status}, updated_time = SYSDATE WHERE id = #{id}
     </update>
 
     <update id="deleteLogic">
-        UPDATE t_yqyc_biz_group_competitor SET deleted_flag = 1, updated_time = NOW() WHERE id = #{id}
+        UPDATE szzw.t_yqyc_biz_group_competitor SET deleted_flag = 1, updated_time = SYSDATE WHERE id = #{id}
     </update>
 
     <select id="selectHistory" resultType="map">
-        SELECT s.change_type             AS changeType,
-               s.before_competitor_name  AS beforeCompetitorName,
-               s.after_competitor_name   AS afterCompetitorName,
-               s.before_quantity         AS beforeQuantity,
-               s.after_quantity          AS afterQuantity,
-               s.before_stat_month       AS beforeStatMonth,
-               s.after_stat_month        AS afterStatMonth,
-               t.submit_time             AS changeTime
-        FROM t_yqyc_wf_ticket_competitor_snapshot s
-        JOIN t_yqyc_wf_ticket t ON s.ticket_id = t.id
+        SELECT s.change_type             AS "changeType",
+               s.before_competitor_name  AS "beforeCompetitorName",
+               s.after_competitor_name   AS "afterCompetitorName",
+               s.before_quantity         AS "beforeQuantity",
+               s.after_quantity          AS "afterQuantity",
+               s.before_stat_month       AS "beforeStatMonth",
+               s.after_stat_month        AS "afterStatMonth",
+               s.created_time            AS "changeTime"
+        FROM szzw.t_yqyc_wf_ticket_competitor_snapshot s
         WHERE s.competitor_record_id = #{competitorId}
-        ORDER BY t.submit_time DESC
+        ORDER BY s.created_time DESC
     </select>
 </mapper>

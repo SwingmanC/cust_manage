@@ -15,14 +15,18 @@
             r.source_system,
             r.sync_batch_no,
             r.sync_time
-        FROM t_yqyc_biz_group_revenue_monthly r
-        JOIN t_yqyc_biz_service s ON s.id = r.service_id
-        WHERE r.group_id = #{groupId}
+        FROM szzw.t_yqyc_biz_group_revenue_monthly r
+        JOIN szzw.t_yqyc_crm_group g ON g.id = #{groupId}
+        JOIN szzw.t_yqyc_biz_service s ON s.id = r.service_id
+        WHERE r.group_id = g.group_code
         <if test="query.startMonth != null and query.startMonth != ''">
             AND r.revenue_month <![CDATA[>=]]> #{query.startMonth}
         </if>
         <if test="query.endMonth != null and query.endMonth != ''">
             AND r.revenue_month <![CDATA[<=]]> #{query.endMonth}
+        </if>
+        <if test="query.serviceName != null and query.serviceName != ''">
+            AND s.service_name LIKE '%' || #{query.serviceName} || '%'
         </if>
         ORDER BY r.revenue_month, s.sort_no, s.id
     </select>
@@ -31,8 +35,9 @@
         SELECT
             r.revenue_month,
             SUM(r.revenue_amount) AS revenue_amount
-        FROM t_yqyc_biz_group_revenue_monthly r
-        WHERE r.group_id = #{groupId}
+        FROM szzw.t_yqyc_biz_group_revenue_monthly r
+        JOIN szzw.t_yqyc_crm_group g ON g.id = #{groupId}
+        WHERE r.group_id = g.group_code
         <if test="query.startMonth != null and query.startMonth != ''">
             AND r.revenue_month <![CDATA[>=]]> #{query.startMonth}
         </if>
@@ -52,14 +57,18 @@
             b.stat_month,
             b.quantity,
             b.source_system
-        FROM t_yqyc_biz_group_bc b
-        JOIN t_yqyc_biz_service s ON s.id = b.service_id
-        WHERE b.group_id = #{groupId}
+        FROM szzw.t_yqyc_biz_group_bc b
+        JOIN szzw.t_yqyc_crm_group g ON g.id = #{groupId}
+        JOIN szzw.t_yqyc_biz_service s ON s.id = b.service_id
+        WHERE b.group_id = g.group_code
         <if test="query.statMonth != null and query.statMonth != ''">
             AND b.stat_month = #{query.statMonth}
         </if>
         <if test="query.serviceId != null">
             AND b.service_id = #{query.serviceId}
+        </if>
+        <if test="query.serviceName != null and query.serviceName != ''">
+            AND s.service_name LIKE '%' || #{query.serviceName} || '%'
         </if>
         ORDER BY b.stat_month DESC, s.sort_no, s.id
     </select>
@@ -75,8 +84,8 @@
             c.quantity,
             c.remark,
             c.updated_time
-        FROM t_yqyc_biz_group_competitor c
-        JOIN t_yqyc_biz_service s ON s.id = c.service_id
+        FROM szzw.t_yqyc_biz_group_competitor c
+        JOIN szzw.t_yqyc_biz_service s ON s.id = c.service_id
         WHERE c.group_id = #{groupId}
         <if test="query.statMonth != null and query.statMonth != ''">
             AND c.stat_month = #{query.statMonth}

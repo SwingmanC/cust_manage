@@ -1,8 +1,31 @@
 package com.custmanage.server.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-public record LoginRequest(
-        @NotBlank(message = "账号不能为空") String account,
-        @NotBlank(message = "密码不能为空") String password) {
+import javax.validation.constraints.NotBlank;
+
+public class LoginRequest {
+
+    @NotBlank(message = "账号不能为空")
+    private String account;
+
+    @NotBlank(message = "密码不能为空")
+    private String password;
+
+    public LoginRequest() {
+    }
+
+    public LoginRequest(@JsonProperty("account") String account,
+                        @JsonProperty("password") String password) {
+        this.account = account;
+        this.password = password;
+    }
+
+    public String account() {
+        return account;
+    }
+
+    public String password() {
+        return password;
+    }
 }

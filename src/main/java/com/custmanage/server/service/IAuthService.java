@@ -21,4 +21,7 @@ public interface IAuthService {
 
     /** 加载用户权限（菜单、按钮、数据范围） */
     PermissionLoadResponse loadPermissions(Long userId);
+
+    /** 修改当前登录用户的密码 */
+    void changePassword(String oldPassword, String newPassword);
 }

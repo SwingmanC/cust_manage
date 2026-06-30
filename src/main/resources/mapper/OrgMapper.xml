@@ -13,14 +13,14 @@
 
     <select id="selectById" resultMap="OrgEntityMap">
         SELECT id, org_code, org_name, parent_id, org_type, org_path
-        FROM t_yqyc_sys_org
+        FROM szzw.t_yqyc_sys_org
         WHERE id = #{orgId}
     </select>
 
     <select id="selectOrgIdsByPathPrefix" resultType="long">
         SELECT id
-        FROM t_yqyc_sys_org
-        WHERE org_path LIKE CONCAT(#{orgPathPrefix}, '%')
+        FROM szzw.t_yqyc_sys_org
+        WHERE org_path LIKE #{orgPathPrefix} || '%'
           AND status = '启用'
     </select>
 

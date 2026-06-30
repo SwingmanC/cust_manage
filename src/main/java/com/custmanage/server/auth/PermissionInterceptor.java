@@ -5,8 +5,8 @@ import com.custmanage.server.common.ApiResponse;
 import com.custmanage.server.mapper.MenuMapper;
 import com.custmanage.server.mapper.RoleMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -32,9 +32,10 @@ public class PermissionInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response,
                              Object handler) throws Exception {
-        if (!(handler instanceof HandlerMethod handlerMethod)) {
+        if (!(handler instanceof HandlerMethod)) {
             return true;
         }
+        HandlerMethod handlerMethod = (HandlerMethod) handler;
 
         RequirePermission annotation = handlerMethod.getMethodAnnotation(RequirePermission.class);
         if (annotation == null) {

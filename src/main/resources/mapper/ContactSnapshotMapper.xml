@@ -19,7 +19,7 @@
     </resultMap>
 
     <insert id="insert">
-        INSERT INTO t_yqyc_wf_ticket_contact_snapshot
+        INSERT INTO szzw.t_yqyc_wf_ticket_contact_snapshot
             (id, ticket_id, contact_id, group_id, change_type,
              before_contact_name, after_contact_name,
              before_contact_phone, after_contact_phone,
@@ -32,11 +32,11 @@
              #{beforeContactPhone}, #{afterContactPhone},
              #{beforeDepartmentName}, #{afterDepartmentName},
              #{beforePositionName}, #{afterPositionName},
-             NULL, NOW())
+             NULL, SYSDATE)
     </insert>
 
     <select id="selectByTicketId" resultMap="SnapshotMap">
-        SELECT * FROM t_yqyc_wf_ticket_contact_snapshot
+        SELECT * FROM szzw.t_yqyc_wf_ticket_contact_snapshot
         WHERE ticket_id = #{ticketId}
     </select>
 </mapper>

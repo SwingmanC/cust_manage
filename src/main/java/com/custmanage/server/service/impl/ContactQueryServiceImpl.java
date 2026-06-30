@@ -1,4 +1,5 @@
 package com.custmanage.server.service.impl;
+import java.util.Arrays;
 
 import com.custmanage.server.mapper.ContactMapper;
 import com.custmanage.server.service.IContactQueryService;
@@ -18,7 +19,7 @@ public class ContactQueryServiceImpl implements IContactQueryService {
     @Override
     public List<ContactVO> queryContacts(Long groupId, String status) {
         return contactMapper.selectContacts(
-                groupId != null ? List.of(groupId) : null,
+                groupId != null ? Arrays.asList(groupId) : null,
                 status, null, null);
     }
 }

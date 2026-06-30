@@ -7,9 +7,9 @@
     <sql id="GroupFilter">
         g.deleted_flag = 0
         <if test="query.groupName != null and query.groupName != ''">
-            AND g.group_name LIKE CONCAT('%', #{query.groupName}, '%')
+            AND g.group_name LIKE '%' || #{query.groupName} || '%'
         </if>
-        <if test="query.groupCode != null and query.groupCode != ''">
+        <if test="query.groupCode != null">
             AND g.group_code = #{query.groupCode}
         </if>
         <if test="query.groupTypeCode != null and query.groupTypeCode != ''">
@@ -53,51 +53,67 @@
 
     <select id="countGroups" resultType="long">
         SELECT COUNT(1)
-        FROM t_yqyc_crm_group g
+        FROM szzw.t_yqyc_crm_group g
         WHERE <include refid="GroupFilter"/>
     </select>
 
     <select id="selectGroups" resultType="com.custmanage.server.vo.GroupListVO">
-        SELECT
-            g.id AS group_id,
-            g.group_code,
-            g.group_name,
-            g.group_category,
-            g.group_type_code,
-            org.org_name AS bu_name,
-            manager.user_name AS manager_name,
-            CASE WHEN g.is_important = 1 THEN TRUE ELSE FALSE END AS important,
-            CASE WHEN g.is_key_customer = 1 THEN TRUE ELSE FALSE END AS key_customer,
-            CASE WHEN g.is_139 = 1 THEN TRUE ELSE FALSE END AS is139,
-            g.location_type,
-            g.contact_book_status,
-            COALESCE(rev.last_month_revenue, 0) AS last_month_revenue
-        FROM t_yqyc_crm_group g
-        LEFT JOIN t_yqyc_sys_org org ON org.id = g.bu_org_id
-        LEFT JOIN t_yqyc_sys_user manager ON manager.id = g.manager_user_id
-        LEFT JOIN (
-            SELECT group_id, revenue_month, SUM(revenue_amount) AS last_month_revenue
-            FROM t_yqyc_biz_group_revenue_monthly
-            WHERE revenue_month = (
-                SELECT MAX(revenue_month)
-                FROM t_yqyc_biz_group_revenue_monthly
-            )
-            GROUP BY group_id, revenue_month
-        ) rev ON rev.group_id = g.id
+        <bind name="endRow" value="limit + offset"/>
+
+        WITH
+        -- 1. 先分页查 ID（只操作主表，避免宽表排序）
+        page_ids_raw AS (
+        SELECT id FROM (
+        SELECT id
+        FROM szzw.t_yqyc_crm_group g
         WHERE <include refid="GroupFilter"/>
+        ORDER BY updated_time DESC, id DESC
+        )
+        <![CDATA[ WHERE ROWNUM <= #{endRow} ]]>
+        ),
+        -- 2. 给 ID 编上页内行号，用于截取 offset
+        page_ids AS (
+        SELECT id, ROWNUM AS rn FROM page_ids_raw
+        )
+        -- 3. 只对最终页的 ID 进行关联查询
+        SELECT
+        g.id AS group_id,
+        g.group_code,
+        g.group_name,
+        g.group_category,
+        g.group_type_code,
+        org.org_name AS bu_name,
+        manager.user_name AS manager_name,
+        CASE WHEN g.is_important = 1 THEN 1 ELSE 0 END AS important,
+        CASE WHEN g.is_key_customer = 1 THEN 1 ELSE 0 END AS key_customer,
+        CASE WHEN g.is_139 = 1 THEN 1 ELSE 0 END AS is139,
+        g.location_type,
+        g.contact_book_status,
+        -- 4. 改为标量子查询，只针对当前页取"最近一月 service_id=15(总收入)的金额"
+        COALESCE((
+        SELECT SUM(rev.revenue_amount)
+        FROM szzw.t_yqyc_biz_group_revenue_monthly rev
+        WHERE rev.group_id = g.group_code
+          AND rev.service_id = 15
+          AND rev.revenue_month = (SELECT MAX(revenue_month) FROM szzw.t_yqyc_biz_group_revenue_monthly WHERE service_id = 15)
+        ), 0) AS last_month_revenue
+        FROM szzw.t_yqyc_crm_group g
+        INNER JOIN page_ids p ON g.id = p.id
+        LEFT JOIN szzw.t_yqyc_sys_org org ON org.id = g.bu_org_id
+        LEFT JOIN szzw.t_yqyc_sys_user manager ON manager.id = g.manager_user_id
+        <![CDATA[ WHERE p.rn > #{offset} ]]>
         ORDER BY g.updated_time DESC, g.id DESC
-        LIMIT #{limit} OFFSET #{offset}
     </select>
 
     <select id="selectGroupIdsByManager" resultType="long">
-        SELECT id FROM t_yqyc_crm_group
+        SELECT id FROM szzw.t_yqyc_crm_group
         WHERE manager_user_id = #{managerUserId}
           AND status = '有效'
           AND deleted_flag = 0
     </select>
 
     <select id="selectGroupIdsByOrgId" resultType="long">
-        SELECT id FROM t_yqyc_crm_group
+        SELECT id FROM szzw.t_yqyc_crm_group
         WHERE bu_org_id = #{orgId}
           AND status = '有效'
           AND deleted_flag = 0
@@ -112,18 +128,18 @@
             g.group_type_code,
             org.org_name AS bu_name,
             manager.user_name AS manager_name,
-            CASE WHEN g.is_important = 1 THEN TRUE ELSE FALSE END AS important,
-            CASE WHEN g.is_key_customer = 1 THEN TRUE ELSE FALSE END AS key_customer,
-            CASE WHEN g.is_139 = 1 THEN TRUE ELSE FALSE END AS is139,
+            CASE WHEN g.is_important = 1 THEN 1 ELSE 0 END AS important,
+            CASE WHEN g.is_key_customer = 1 THEN 1 ELSE 0 END AS key_customer,
+            CASE WHEN g.is_139 = 1 THEN 1 ELSE 0 END AS is139,
             g.location_type,
             g.main_contact_name,
             g.main_contact_phone,
             g.contact_book_status,
             g.social_security_count,
             g.status
-        FROM t_yqyc_crm_group g
-        LEFT JOIN t_yqyc_sys_org org ON org.id = g.bu_org_id
-        LEFT JOIN t_yqyc_sys_user manager ON manager.id = g.manager_user_id
+        FROM szzw.t_yqyc_crm_group g
+        LEFT JOIN szzw.t_yqyc_sys_org org ON org.id = g.bu_org_id
+        LEFT JOIN szzw.t_yqyc_sys_user manager ON manager.id = g.manager_user_id
         WHERE g.id = #{groupId}
           AND g.deleted_flag = 0
     </select>

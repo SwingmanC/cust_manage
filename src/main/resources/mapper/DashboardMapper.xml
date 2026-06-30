@@ -2,110 +2,228 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.custmanage.server.mapper.DashboardMapper">
 
+    <!--
+        说明：所有 resultType="map" 的查询，列别名一律用双引号包裹（AS "buName"）。
+        原因：OceanBase Oracle 模式下，不带引号的别名会被 JDBC 元数据强制转为大写
+        （AS buName → 列名 BUNAME），导致 Map key 变成大写、前端取不到字段。
+        双引号别名后元数据保留原始大小写，Map key 即为驼峰名。
+        注意：ORDER BY 不能再用大写后的别名，改为按聚合表达式排序。
+    -->
+
     <!-- 集团总数 -->
     <select id="countTotalGroups" resultType="long">
-        SELECT COUNT(1) FROM t_yqyc_crm_group WHERE status = '有效' AND deleted_flag = 0
+        SELECT COUNT(1) FROM szzw.t_yqyc_crm_group WHERE status = '有效' AND deleted_flag = 0
     </select>
 
-    <!-- 当月收入 -->
+    <!-- 当月收入（数据源：BU 业绩表） -->
     <select id="sumMonthRevenue" resultType="map">
-        SELECT COALESCE(SUM(revenue_amount), 0) AS total
-        FROM t_yqyc_biz_group_revenue_monthly
-        WHERE revenue_month = #{month}
+        SELECT COALESCE(SUM(amount), 0) AS "total"
+        FROM szzw.t_yqyc_biz_bu_performance
+        WHERE stat_month = #{month} and service_id = #{serviceId}
     </select>
 
-    <!-- 全年累计收入 -->
+    <!-- 全年累计收入（数据源：BU 业绩表） -->
     <select id="sumAnnualRevenue" resultType="map">
-        SELECT COALESCE(SUM(revenue_amount), 0) AS total
-        FROM t_yqyc_biz_group_revenue_monthly
-        WHERE revenue_month LIKE CONCAT(#{year}, '%')
+        SELECT COALESCE(SUM(amount), 0) AS "total"
+        FROM szzw.t_yqyc_biz_bu_performance
+        WHERE stat_month LIKE #{year} || '%' and service_id = #{serviceId}
     </select>
 
-    <!-- 分BU收入 -->
+    <!-- 分BU收入（数据源：BU 业绩表，直接以 bu_org_id 为维度，无需 JOIN 集团表） -->
     <select id="revenueByBu" resultType="map">
-        SELECT g.bu_org_id AS buOrgId, o.org_name AS buName,
-               COALESCE(SUM(r.revenue_amount), 0) AS amount
-        FROM t_yqyc_biz_group_revenue_monthly r
-        JOIN t_yqyc_crm_group g ON r.group_id = g.id
-        JOIN t_yqyc_sys_org o ON g.bu_org_id = o.id
-        WHERE r.revenue_month = #{month} AND g.deleted_flag = 0
-        GROUP BY g.bu_org_id, o.org_name
-        ORDER BY amount DESC
+        SELECT p.bu_org_id AS "buOrgId", o.org_name AS "buName",
+               p.amount AS "amount"
+        FROM szzw.t_yqyc_biz_bu_performance p
+        JOIN szzw.t_yqyc_sys_org o ON p.bu_org_id = o.id
+        WHERE p.stat_month = #{month} and p.service_id = #{serviceId}
+        ORDER BY p.amount DESC
     </select>
 
-    <!-- 分业务收入 -->
+    <!-- 分业务收入（数据源：BU 业绩表） -->
     <select id="revenueByService" resultType="map">
-        SELECT r.service_id AS serviceId, s.service_name AS serviceName,
-               COALESCE(SUM(r.revenue_amount), 0) AS amount
-        FROM t_yqyc_biz_group_revenue_monthly r
-        JOIN t_yqyc_biz_service s ON r.service_id = s.id
-        WHERE r.revenue_month = #{month}
-        GROUP BY r.service_id, s.service_name
-        ORDER BY amount DESC
+        SELECT p.service_id AS "serviceId", s.service_name AS "serviceName",
+               COALESCE(SUM(p.amount), 0) AS "amount"
+        FROM szzw.t_yqyc_biz_bu_performance p
+        JOIN szzw.t_yqyc_biz_service s ON p.service_id = s.id
+        WHERE p.stat_month = #{month} and s.id between 1 and 9
+        GROUP BY p.service_id, s.service_name
+        ORDER BY SUM(p.amount) DESC
     </select>
 
-    <!-- 全年收入按月趋势 -->
+    <!-- 全年收入按月趋势（数据源：BU 业绩表） -->
     <select id="revenueTrendByMonth" resultType="map">
-        SELECT revenue_month AS month, COALESCE(SUM(revenue_amount), 0) AS amount
-        FROM t_yqyc_biz_group_revenue_monthly
-        WHERE revenue_month LIKE CONCAT(#{year}, '%')
-        GROUP BY revenue_month
-        ORDER BY revenue_month
+        SELECT stat_month AS "month", COALESCE(SUM(amount), 0) AS "amount"
+        FROM szzw.t_yqyc_biz_bu_performance
+        WHERE stat_month LIKE #{year} || '%' and service_id = #{serviceId}
+        GROUP BY stat_month
+        ORDER BY stat_month
     </select>
 
     <!-- BU业绩：按业务汇总 -->
     <select id="buPerfByService" resultType="map">
-        SELECT service_id AS serviceId, COALESCE(SUM(amount), 0) AS amount
-        FROM t_yqyc_biz_bu_performance
+        SELECT service_id AS "serviceId", COALESCE(SUM(amount), 0) AS "amount"
+        FROM szzw.t_yqyc_biz_bu_performance
         WHERE stat_month = #{month}
         GROUP BY service_id
     </select>
 
-    <!-- BU业绩：按BU+业务汇总 -->
+    <!-- BU业绩：按BU+业务汇总（按 svcCodes 过滤业务科目） -->
     <select id="buPerfByBuService" resultType="map">
-        SELECT p.bu_org_id AS buOrgId, o.org_name AS buName,
-               p.service_id AS serviceId, COALESCE(SUM(p.amount), 0) AS amount
-        FROM t_yqyc_biz_bu_performance p
-        JOIN t_yqyc_sys_org o ON p.bu_org_id = o.id
+        SELECT p.bu_org_id AS "buOrgId", o.org_name AS "buName",
+               p.service_id AS "serviceId", COALESCE(SUM(p.amount), 0) AS "amount"
+        FROM szzw.t_yqyc_biz_bu_performance p
+        JOIN szzw.t_yqyc_sys_org o ON p.bu_org_id = o.id
         WHERE p.stat_month = #{month}
+        <if test="svcCodes != null and svcCodes.size() > 0">
+            AND p.service_id IN
+            <foreach collection="svcCodes" item="code" open="(" separator="," close=")">
+                #{code}
+            </foreach>
+        </if>
         GROUP BY p.bu_org_id, o.org_name, p.service_id
     </select>
 
-    <!-- BU按月收入 -->
+    <!-- 按BU汇总指定业务科目金额（多业务相加，每BU一行）：两线规模=互联网专线(13)+数据专线(14) -->
+    <select id="sumAmountByBu" resultType="map">
+        SELECT p.bu_org_id AS "buOrgId", o.org_name AS "buName",
+               COALESCE(SUM(p.amount), 0) AS "amount"
+        FROM szzw.t_yqyc_biz_bu_performance p
+        JOIN szzw.t_yqyc_sys_org o ON p.bu_org_id = o.id
+        WHERE p.stat_month = #{month}
+        <if test="svcCodes != null and svcCodes.size() > 0">
+            AND p.service_id IN
+            <foreach collection="svcCodes" item="code" open="(" separator="," close=")">
+                #{code}
+            </foreach>
+        </if>
+        GROUP BY p.bu_org_id, o.org_name
+        ORDER BY SUM(p.amount) DESC
+    </select>
+
+    <!-- 按业务科目取各 BU 的平均值（每科目一行）：要客宽带渗透率(19)/关联人流量主用占比(20) 取所有 BU 均值 -->
+    <select id="avgAmountByService" resultType="map">
+        SELECT service_id AS "serviceId", COALESCE(AVG(amount), 0) AS "avgAmount"
+        FROM szzw.t_yqyc_biz_bu_performance
+        WHERE stat_month = #{month}
+        <if test="svcCodes != null and svcCodes.size() > 0">
+            AND service_id IN
+            <foreach collection="svcCodes" item="code" open="(" separator="," close=")">
+                #{code}
+            </foreach>
+        </if>
+        GROUP BY service_id
+    </select>
+
+    <!-- BU按月收入（数据源：BU 业绩表，直接按 bu_org_id 过滤，无需 JOIN 集团表） -->
     <select id="buMonthlyRevenue" resultType="map">
-        SELECT r.revenue_month AS month, COALESCE(SUM(r.revenue_amount), 0) AS amount
-        FROM t_yqyc_biz_group_revenue_monthly r
-        JOIN t_yqyc_crm_group g ON r.group_id = g.id
-        WHERE g.bu_org_id = #{buOrgId} AND r.revenue_month LIKE CONCAT(#{year}, '%')
-        GROUP BY r.revenue_month ORDER BY r.revenue_month
+        SELECT stat_month AS "month", COALESCE(SUM(amount), 0) AS "amount"
+        FROM szzw.t_yqyc_biz_bu_performance
+        WHERE bu_org_id = #{buOrgId} AND stat_month LIKE #{year} || '%' AND service_id = #{serviceId}
+        GROUP BY stat_month ORDER BY stat_month
     </select>
 
     <!-- BU按月业绩 -->
     <select id="buMonthlyPerf" resultType="map">
-        SELECT stat_month AS month, COALESCE(SUM(amount), 0) AS amount
-        FROM t_yqyc_biz_bu_performance
+        SELECT stat_month AS "month", COALESCE(SUM(amount), 0) AS "amount"
+        FROM szzw.t_yqyc_biz_bu_performance
         WHERE bu_org_id = #{buOrgId} AND service_id = #{serviceId}
-          AND stat_month LIKE CONCAT(#{year}, '%')
+          AND stat_month LIKE #{year} || '%'
         GROUP BY stat_month ORDER BY stat_month
+    </select>
+
+    <!-- 指定BU某年指定科目总和（如专线全年累计=13+14） -->
+    <select id="buAnnualSum" resultType="map">
+        SELECT COALESCE(SUM(amount), 0) AS "total"
+        FROM szzw.t_yqyc_biz_bu_performance
+        WHERE bu_org_id = #{buOrgId} AND stat_month LIKE #{year} || '%'
+        <if test="svcCodes != null and svcCodes.size() > 0">
+            AND service_id IN
+            <foreach collection="svcCodes" item="code" open="(" separator="," close=")">
+                #{code}
+            </foreach>
+        </if>
+    </select>
+
+    <!-- 指定BU某年收入目标（优先 service_id=15，回退 service_id IS NULL，再回退 0） -->
+    <select id="buAnnualTarget" resultType="map">
+        SELECT COALESCE(
+            (SELECT SUM(target_amount) FROM szzw.t_yqyc_biz_annual_target
+             WHERE bu_org_id = #{buOrgId} AND target_year = #{year} AND service_id = 15),
+            (SELECT SUM(target_amount) FROM szzw.t_yqyc_biz_annual_target
+             WHERE bu_org_id = #{buOrgId} AND target_year = #{year} AND service_id IS NULL),
+            0) AS "total"
+        FROM DUAL
+    </select>
+
+    <!-- 指定BU某年某科目的月度平均值（要客宽带渗透率取全年均值） -->
+    <select id="buAnnualAvg" resultType="map">
+        SELECT COALESCE(AVG(amount), 0) AS "avg"
+        FROM szzw.t_yqyc_biz_bu_performance
+        WHERE bu_org_id = #{buOrgId} AND stat_month LIKE #{year} || '%' AND service_id = #{serviceId}
+    </select>
+
+    <!-- 指定BU某年指定科目按月求和（专线月收入=13+14） -->
+    <select id="buMonthlySum" resultType="map">
+        SELECT stat_month AS "month", COALESCE(SUM(amount), 0) AS "amount"
+        FROM szzw.t_yqyc_biz_bu_performance
+        WHERE bu_org_id = #{buOrgId} AND stat_month LIKE #{year} || '%'
+        <if test="svcCodes != null and svcCodes.size() > 0">
+            AND service_id IN
+            <foreach collection="svcCodes" item="code" open="(" separator="," close=")">
+                #{code}
+            </foreach>
+        </if>
+        GROUP BY stat_month
+        ORDER BY stat_month
+    </select>
+
+    <!-- 各 BU 某科目全年累计金额 + 年度目标 + 完成率(%)：各 BU ICT 签约详情/全年完成率 -->
+    <select id="buAnnualCompletion" resultType="map">
+        SELECT a.bu_org_id AS "buOrgId", a.bu_name AS "buName",
+               a.amount AS "amount",
+               COALESCE(t.target_amount, 0) AS "target",
+               CASE WHEN COALESCE(t.target_amount, 0) > 0
+                    THEN ROUND(a.amount * 100 / t.target_amount, 1)
+                    ELSE 0 END AS "completionRate"
+        FROM (
+            SELECT p.bu_org_id, o.org_name AS bu_name, COALESCE(SUM(p.amount), 0) AS amount
+            FROM szzw.t_yqyc_biz_bu_performance p
+            JOIN szzw.t_yqyc_sys_org o ON p.bu_org_id = o.id
+            WHERE p.service_id = #{serviceId} AND p.stat_month LIKE #{year} || '%'
+            GROUP BY p.bu_org_id, o.org_name
+        ) a
+        LEFT JOIN (
+            SELECT bu_org_id, SUM(target_amount) AS target_amount
+            FROM szzw.t_yqyc_biz_annual_target
+            WHERE target_year = #{year} AND service_id = #{serviceId}
+            GROUP BY bu_org_id
+        ) t ON t.bu_org_id = a.bu_org_id
+        ORDER BY a.amount DESC
     </select>
 
     <!-- BU列表 -->
     <select id="selectBuOptions" resultType="map">
-        SELECT id AS buOrgId, org_name AS buName
-        FROM t_yqyc_sys_org WHERE org_type = '网格' AND status = '启用'
+        SELECT id AS "buOrgId", org_name AS "buName"
+        FROM szzw.t_yqyc_sys_org WHERE org_type = 'BU' AND status = '启用'
         ORDER BY sort_no, id
     </select>
 
     <!-- 要客集团数 -->
     <select id="countKeyCustomerGroups" resultType="long">
-        SELECT COUNT(1) FROM t_yqyc_crm_group
+        SELECT COUNT(1) FROM szzw.t_yqyc_crm_group
         WHERE is_key_customer = 1 AND status = '有效' AND deleted_flag = 0
     </select>
 
-    <!-- 统付集团数 -->
+    <!-- 统付集团数：t_yqyc_biz_group_bc 中有统付成员（BC 记录）的集团数 -->
     <select id="countUnifiedPaymentGroups" resultType="long">
-        SELECT COUNT(DISTINCT parent_group_id) FROM t_yqyc_crm_group_relation
-        WHERE relation_type = '统付'
+        SELECT COUNT(DISTINCT group_id) FROM szzw.t_yqyc_biz_group_bc
+    </select>
+
+    <!-- 全部 BU 某年收入目标总和（service_id=15），用于全年收入完成进度 -->
+    <select id="totalAnnualTarget" resultType="map">
+        SELECT COALESCE(SUM(target_amount), 0) AS "total"
+        FROM szzw.t_yqyc_biz_annual_target
+        WHERE target_year = #{year} AND service_id = 15
     </select>
 
 </mapper>

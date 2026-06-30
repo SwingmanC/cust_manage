@@ -110,7 +110,7 @@ public class TicketServiceImpl implements ITicketService {
     private void addApprovalRecord(Long ticketId, String nodeName, Long approverId,
                                     String action, String fromStatus, String toStatus,
                                     String comment) {
-        var record = new TicketApprovalMapper.TicketApprovalEntity();
+        TicketApprovalMapper.TicketApprovalEntity record = new TicketApprovalMapper.TicketApprovalEntity();
         record.setId(ID_SEQ.incrementAndGet());
         record.setTicketId(ticketId);
         record.setNodeName(nodeName);

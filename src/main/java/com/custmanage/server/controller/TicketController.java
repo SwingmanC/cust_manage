@@ -41,7 +41,7 @@ public class TicketController {
     public ApiResponse<Void> reject(@PathVariable Long id,
                                      @RequestBody Map<String, String> body) {
         String reason = body.getOrDefault("reason", "");
-        if (reason.isBlank()) {
+        if (reason.trim().isEmpty()) {
             reason = "驳回";
         }
         ticketService.rejectTicket(id, reason);

@@ -1,4 +1,5 @@
 package com.custmanage.server.service.impl;
+import com.custmanage.server.common.MapUtil;
 
 import com.custmanage.server.auth.DataScopeContext;
 import com.custmanage.server.auth.context.RequestContext;
@@ -44,15 +45,19 @@ public class ContactServiceImpl implements IContactService {
     public PageResponse<ContactVO> queryContacts(Long groupId, String tab, String keyword,
                                                   int pageNum, int pageSize) {
         // 数据权限
-        List<Long> groupIds = resolveGroupIds();
-        if (groupId != null) {
-            groupIds.retainAll(Collections.singletonList(groupId));
+        List<Long> groupIds;
+        if(groupId == null){
+            groupIds = resolveGroupIds();
+        }
+        else{
+            groupIds = new ArrayList<>();
+            groupIds.add(groupId);
         }
 
         List<String> statusList = null;
         String status = null;
         if ("pending".equals(tab)) {
-            statusList = List.of("待审核", "驳回");
+            statusList = Arrays.asList("待审核", "驳回");
         } else {
             status = "有效";  // active tab
         }
@@ -62,7 +67,7 @@ public class ContactServiceImpl implements IContactService {
         // Use a simple approach: select all and sublist in memory for simplicity
         List<ContactVO> all = contactMapper.selectContacts(groupIds, status, statusList, keyword);
         int toIndex = Math.min(offset + pageSize, all.size());
-        List<ContactVO> page = offset < all.size() ? all.subList(offset, toIndex) : List.of();
+        List<ContactVO> page = offset < all.size() ? all.subList(offset, toIndex) : Arrays.asList();
         return new PageResponse<>(total, page);
     }
 
@@ -100,6 +105,9 @@ public class ContactServiceImpl implements IContactService {
             createSnapshot(ticketId, id, groupId, "新增", null, params);
             // 提交工单
             submitTicket(ticketId, userId);
+        } else {
+            // BU/网格长：直接生效，仅记录历史变更快照（无审核工单，ticket_id 为空）
+            createSnapshot(null, id, toLong(params.get("groupId")), "新增", null, params);
         }
 
         Map<String, Object> result = new HashMap<>();
@@ -124,9 +132,11 @@ public class ContactServiceImpl implements IContactService {
             params.put("status", "有效");
             params.put("updatedBy", userId);
             contactMapper.update(params);
+            // 记录历史变更（无审核工单，ticket_id 为空）
+            createSnapshot(null, contactId, old.getGroupId(), "修改", old, params);
             // 若存在被驳回的工单，自动通过
             autoCloseRejectedTicket(contactId, userId);
-            return Map.of("id", contactId, "status", "有效", "ticketId", -1);
+            return MapUtil.of("id", contactId, "status", "有效", "ticketId", -1);
         }
 
         // 客户经理：更新状态为待审核
@@ -151,7 +161,7 @@ public class ContactServiceImpl implements IContactService {
             submitTicket(ticketId, userId);
         }
 
-        return Map.of("id", contactId, "status", "待审核",
+        return MapUtil.of("id", contactId, "status", "待审核",
                 "ticketId", ticketId);
     }
 
@@ -166,14 +176,16 @@ public class ContactServiceImpl implements IContactService {
 
         if (isBuLeader) {
             contactMapper.deleteLogic(contactId);
+            // 记录历史变更（无审核工单，ticket_id 为空）
+            createSnapshot(null, contactId, old.getGroupId(), "删除", old, MapUtil.of());
             autoCloseRejectedTicket(contactId, userId);
-            return Map.of("id", contactId, "status", "已删除", "ticketId", -1);
+            return MapUtil.of("id", contactId, "status", "已删除", "ticketId", -1);
         }
 
         // 客户经理：生成或复用删除工单
         TicketMapper.TicketEntity existingTicket = ticketMapper.selectByBusinessId(contactId, null);
         Long ticketId;
-        Map<String, Object> emptyNew = Map.of();
+        Map<String, Object> emptyNew = MapUtil.of();
         if (existingTicket != null && "驳回".equals(existingTicket.getTicketStatus())) {
             ticketId = existingTicket.getId();
             ticketMapper.updateStatus(ticketId, "待审核", null);
@@ -185,7 +197,7 @@ public class ContactServiceImpl implements IContactService {
             submitTicket(ticketId, userId);
         }
 
-        return Map.of("id", contactId, "status", "待审核",
+        return MapUtil.of("id", contactId, "status", "待审核",
                 "ticketId", ticketId);
     }
 
@@ -222,7 +234,7 @@ public class ContactServiceImpl implements IContactService {
 
     private void addApprovalRecord(Long ticketId, String nodeName, Long approverId,
                                     String action, String fromStatus, String toStatus, String comment) {
-        var record = new TicketApprovalMapper.TicketApprovalEntity();
+        TicketApprovalMapper.TicketApprovalEntity record = new TicketApprovalMapper.TicketApprovalEntity();
         record.setId(nextId());
         record.setTicketId(ticketId);
         record.setNodeName(nodeName);
@@ -236,26 +248,29 @@ public class ContactServiceImpl implements IContactService {
 
     private void createSnapshot(Long ticketId, Long contactId, Long groupId,
                                  String changeType, Object oldObj, Object newObj) {
-        var snap = new ContactSnapshotMapper.ContactSnapshotEntity();
+        ContactSnapshotMapper.ContactSnapshotEntity snap = new ContactSnapshotMapper.ContactSnapshotEntity();
         snap.setId(nextId());
         snap.setTicketId(ticketId);
         snap.setContactId(contactId);
         snap.setGroupId(groupId);
         snap.setChangeType(changeType);
 
-        if (oldObj instanceof ContactVO old) {
+        if (oldObj instanceof ContactVO) {
+            ContactVO old = (ContactVO) oldObj;
             snap.setBeforeContactName(old.getContactName());
             snap.setBeforeContactPhone(old.getContactPhone());
             snap.setBeforeDepartmentName(old.getDepartmentName());
             snap.setBeforePositionName(old.getPositionName());
-        } else if (oldObj instanceof Map<?,?> oldMap) {
+        } else if (oldObj instanceof Map) {
+            Map oldMap = (Map) oldObj;
             snap.setBeforeContactName((String) oldMap.get("contactName"));
             snap.setBeforeContactPhone((String) oldMap.get("contactPhone"));
             snap.setBeforeDepartmentName((String) oldMap.get("departmentName"));
             snap.setBeforePositionName((String) oldMap.get("positionName"));
         }
 
-        if (newObj instanceof Map<?,?> newMap) {
+        if (newObj instanceof Map) {
+            Map newMap = (Map) newObj;
             snap.setAfterContactName((String) newMap.get("contactName"));
             snap.setAfterContactPhone((String) newMap.get("contactPhone"));
             snap.setAfterDepartmentName((String) newMap.get("departmentName"));
@@ -273,21 +288,21 @@ public class ContactServiceImpl implements IContactService {
         List<String> roles = RequestContext.currentRoles();
         DataScopeContext scope = dataScopeService.resolveDataScope(userId, orgId, roles);
 
-        return switch (scope.getScopeType()) {
-            case "全部" -> null;
-            case "本部门" -> scope.getDeptOrgIds();
-            case "本网格" -> groupMapper.selectGroupIdsByOrgId(orgId);
-            default -> {
+        switch (scope.getScopeType()) {
+            case "全部": return null;
+            case "本部门": return scope.getDeptOrgIds();
+            case "本网格": return groupMapper.selectGroupIdsByOrgId(orgId);
+            default: {
                 List<Long> ids = groupMapper.selectGroupIdsByManager(userId);
-                yield ids != null && !ids.isEmpty() ? ids : List.of(-1L);
+                return ids != null && !ids.isEmpty() ? ids : Arrays.asList(-1L);
             }
-        };
+        }
     }
 
     private boolean isBuLeader() {
         List<String> roles = RequestContext.currentRoles();
-        return roles.contains("ROLE_GRID") || roles.contains("ROLE_DEPT")
-                || roles.contains("ROLE_COMPANY") || roles.contains("ROLE_ADMIN");
+        return roles.contains("BU_LEADER") || roles.contains("DEPT_LEADER")
+                || roles.contains("COMPANY_LEADER") || roles.contains("SYSTEM_ADMIN");
     }
 
     private void autoCloseRejectedTicket(Long businessId, Long userId) {
@@ -305,9 +320,9 @@ public class ContactServiceImpl implements IContactService {
     /** 安全获取 Map 中的 Long 值（Jackson 反序列化时 Integer→Long 兼容） */
     private static Long toLong(Object val) {
         if (val == null) return null;
-        if (val instanceof Long l) return l;
-        if (val instanceof Integer i) return i.longValue();
-        if (val instanceof String s) return Long.valueOf(s);
+        if (val instanceof Long) return (Long) val;
+        if (val instanceof Integer) return ((Integer) val).longValue();
+        if (val instanceof String) return Long.valueOf((String) val);
         return ((Number) val).longValue();
     }
 }

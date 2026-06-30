@@ -22,8 +22,8 @@
             c.position_name, c.department_name,
             c.status, c.source_type, c.updated_time,
             c.group_id, g.group_name
-        FROM t_yqyc_crm_group_contact c
-        LEFT JOIN t_yqyc_crm_group g ON c.group_id = g.id
+        FROM szzw.t_yqyc_crm_group_contact c
+        LEFT JOIN szzw.t_yqyc_crm_group g ON c.group_id = g.id
         WHERE c.deleted_flag = 0
         <if test="groupIds != null and groupIds.size() > 0">
             AND c.group_id IN
@@ -37,21 +37,21 @@
             <foreach collection="statusList" item="s" open="(" separator="," close=")">#{s}</foreach>
         </if>
         <if test="keyword != null and keyword != ''">
-            AND (c.contact_name LIKE CONCAT('%', #{keyword}, '%')
-                 OR c.contact_phone LIKE CONCAT('%', #{keyword}, '%'))
+            AND (c.contact_name LIKE '%' || #{keyword} || '%'
+                 OR c.contact_phone LIKE '%' || #{keyword} || '%')
         </if>
         ORDER BY c.updated_time DESC
     </select>
 
     <select id="selectById" resultMap="ContactVOMap">
         SELECT c.*, g.group_name
-        FROM t_yqyc_crm_group_contact c
-        LEFT JOIN t_yqyc_crm_group g ON c.group_id = g.id
+        FROM szzw.t_yqyc_crm_group_contact c
+        LEFT JOIN szzw.t_yqyc_crm_group g ON c.group_id = g.id
         WHERE c.id = #{id} AND c.deleted_flag = 0
     </select>
 
     <select id="countContacts" resultType="long">
-        SELECT COUNT(1) FROM t_yqyc_crm_group_contact c
+        SELECT COUNT(1) FROM szzw.t_yqyc_crm_group_contact c
         WHERE c.deleted_flag = 0
         <if test="groupIds != null and groupIds.size() > 0">
             AND c.group_id IN
@@ -67,51 +67,50 @@
     </select>
 
     <insert id="insert">
-        INSERT INTO t_yqyc_crm_group_contact
+        INSERT INTO szzw.t_yqyc_crm_group_contact
             (id, group_id, contact_name, contact_phone, position_name, department_name,
              status, source_type, created_by, created_time, updated_by, updated_time, deleted_flag)
         VALUES
             (#{id}, #{groupId}, #{contactName}, #{contactPhone}, #{positionName}, #{departmentName},
-             #{status}, #{sourceType}, #{createdBy}, NOW(), #{updatedBy}, NOW(), 0)
+             #{status}, #{sourceType}, #{createdBy}, SYSDATE, #{updatedBy}, SYSDATE, 0)
     </insert>
 
     <update id="update">
-        UPDATE t_yqyc_crm_group_contact
+        UPDATE szzw.t_yqyc_crm_group_contact
         SET contact_name = #{contactName},
             contact_phone = #{contactPhone},
             position_name = #{positionName},
             department_name = #{departmentName},
             status = #{status},
             updated_by = #{updatedBy},
-            updated_time = NOW()
+            updated_time = SYSDATE
         WHERE id = #{id}
     </update>
 
     <update id="updateStatus">
-        UPDATE t_yqyc_crm_group_contact
-        SET status = #{status}, updated_time = NOW()
+        UPDATE szzw.t_yqyc_crm_group_contact
+        SET status = #{status}, updated_time = SYSDATE
         WHERE id = #{id}
     </update>
 
     <update id="deleteLogic">
-        UPDATE t_yqyc_crm_group_contact SET deleted_flag = 1, updated_time = NOW() WHERE id = #{id}
+        UPDATE szzw.t_yqyc_crm_group_contact SET deleted_flag = 1, updated_time = SYSDATE WHERE id = #{id}
     </update>
 
-    <!-- 历史变更：从工单快照回溯，展示每次修改的前后对比 -->
+    <!-- 历史变更：从快照表回溯（含工单快照与 BU/网格长直接编辑的无工单快照） -->
     <select id="selectHistory" resultType="map">
-        SELECT s.change_type          AS changeType,
-               s.before_contact_name  AS beforeContactName,
-               s.after_contact_name   AS afterContactName,
-               s.before_contact_phone AS beforeContactPhone,
-               s.after_contact_phone  AS afterContactPhone,
-               s.before_department_name AS beforeDepartmentName,
-               s.after_department_name AS afterDepartmentName,
-               s.before_position_name  AS beforePositionName,
-               s.after_position_name   AS afterPositionName,
-               t.submit_time          AS changeTime
-        FROM t_yqyc_wf_ticket_contact_snapshot s
-        JOIN t_yqyc_wf_ticket t ON s.ticket_id = t.id
+        SELECT s.change_type          AS "changeType",
+               s.before_contact_name  AS "beforeContactName",
+               s.after_contact_name   AS "afterContactName",
+               s.before_contact_phone AS "beforeContactPhone",
+               s.after_contact_phone  AS "afterContactPhone",
+               s.before_department_name AS "beforeDepartmentName",
+               s.after_department_name AS "afterDepartmentName",
+               s.before_position_name  AS "beforePositionName",
+               s.after_position_name   AS "afterPositionName",
+               s.created_time          AS "changeTime"
+        FROM szzw.t_yqyc_wf_ticket_contact_snapshot s
         WHERE s.contact_id = #{contactId}
-        ORDER BY t.submit_time DESC
+        ORDER BY s.created_time DESC
     </select>
 </mapper>

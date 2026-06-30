@@ -8,10 +8,10 @@ spring:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Shanghai
   datasource:
-    url: jdbc:mysql://localhost:3306/cust_manage?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
-    username: root
-    password: sc990912
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:oceanbase://10.33.222.38:30051/
+    username: SZSZH@OBPSZ#OBTYZCSZ
+    password: V8rn8s2WvQ6kdH8
+    driver-class-name: com.oceanbase.jdbc.Driver
 
 mybatis:
   mapper-locations: classpath*:mapper/**/*.xml
@@ -32,4 +32,4 @@ auth:
 
 logging:
   level:
-    com.custmanage.server.query.mapper: debug
+    com.custmanage.server.mapper: debug

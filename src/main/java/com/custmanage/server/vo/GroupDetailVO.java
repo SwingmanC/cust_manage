@@ -2,7 +2,7 @@ package com.custmanage.server.vo;
 
 public class GroupDetailVO {
     private Long groupId;
-    private String groupCode;
+    private Long groupCode;
     private String groupName;
     private String groupCategory;
     private String groupTypeCode;
@@ -26,11 +26,11 @@ public class GroupDetailVO {
         this.groupId = groupId;
     }
 
-    public String getGroupCode() {
+    public Long getGroupCode() {
         return groupCode;
     }
 
-    public void setGroupCode(String groupCode) {
+    public void setGroupCode(Long groupCode) {
         this.groupCode = groupCode;
     }
 

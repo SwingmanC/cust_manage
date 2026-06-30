@@ -1,6 +1,6 @@
 package com.custmanage.server.config;
 
-import jakarta.annotation.PostConstruct;
+import javax.annotation.PostConstruct;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
@@ -17,7 +17,7 @@ public class JwtConfig {
 
     @PostConstruct
     public void init() {
-        if (secret == null || secret.isBlank()) {
+        if (secret == null || secret.trim().isEmpty()) {
             byte[] key = new byte[32];
             new SecureRandom().nextBytes(key);
             this.secret = Base64.getEncoder().encodeToString(key);

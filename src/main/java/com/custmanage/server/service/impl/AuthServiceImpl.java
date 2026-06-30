@@ -1,7 +1,9 @@
 package com.custmanage.server.service.impl;
 
 import com.custmanage.server.auth.DataScopeContext;
+import com.custmanage.server.auth.PasswordCodec;
 import com.custmanage.server.auth.context.LoginUser;
+import com.custmanage.server.auth.context.RequestContext;
 import com.custmanage.server.common.BusinessException;
 import com.custmanage.server.config.JwtConfig;
 import com.custmanage.server.mapper.*;
@@ -30,6 +32,7 @@ public class AuthServiceImpl implements IAuthService {
     private final LoginLogMapper loginLogMapper;
     private final IDataScopeService dataScopeService;
     private final List<AuthStrategy> strategies;
+    private final PasswordCodec passwordCodec;
 
     public AuthServiceImpl(JwtConfig jwtConfig,
                            UserMapper userMapper,
@@ -37,7 +40,8 @@ public class AuthServiceImpl implements IAuthService {
                            MenuMapper menuMapper,
                            LoginLogMapper loginLogMapper,
                            IDataScopeService dataScopeService,
-                           List<AuthStrategy> strategies) {
+                           List<AuthStrategy> strategies,
+                           PasswordCodec passwordCodec) {
         this.jwtConfig = jwtConfig;
         this.userMapper = userMapper;
         this.roleMapper = roleMapper;
@@ -45,6 +49,7 @@ public class AuthServiceImpl implements IAuthService {
         this.loginLogMapper = loginLogMapper;
         this.dataScopeService = dataScopeService;
         this.strategies = strategies;
+        this.passwordCodec = passwordCodec;
     }
 
     @Override
@@ -128,6 +133,25 @@ public class AuthServiceImpl implements IAuthService {
         response.setDataScope(scopeInfo);
 
         return response;
+    }
+
+    @Override
+    public void changePassword(String oldPassword, String newPassword) {
+        Long userId = RequestContext.currentUserId();
+        if (userId == null) {
+            throw new BusinessException(40100, "未登录或登录已过期");
+        }
+        LoginUser user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(40004, "用户不存在");
+        }
+        if (!passwordCodec.matches(oldPassword, user.getPasswordHash())) {
+            throw new BusinessException(40002, "原密码错误");
+        }
+        if (newPassword.equals(oldPassword)) {
+            throw new BusinessException(40004, "新密码不能与原密码相同");
+        }
+        userMapper.updatePassword(userId, passwordCodec.hash(newPassword));
     }
 
     private LoginResponse buildLoginResponse(LoginUser user, String token) {
